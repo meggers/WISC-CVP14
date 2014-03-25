@@ -1,0 +1,3 @@
+module ScalarRegFile ();
+
+endmodule
