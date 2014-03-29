@@ -1,2 +1,16 @@
-# Reading C:/Modeltech_pe_edu_10.3/tcl/vsim/pref.tcl 
-# OpenFile C:/Users/Matthew/Documents/WISC-CVP14/CVP14.v 
+# //  ModelSim SE-64 10.2c Jul 18 2013 Linux 3.2.0-4-amd64
+# //
+# //  Copyright 1991-2013 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  THIS WORK CONTAINS TRADE SECRET AND PROPRIETARY INFORMATION
+# //  WHICH IS THE PROPERTY OF MENTOR GRAPHICS CORPORATION OR ITS
+# //  LICENSORS AND IS SUBJECT TO LICENSE TERMS.
+# //
+# Loading project HW3
+# reading /cae/apps/data/mentor-2013/MODELSIM_SE_10.2C/modeltech/linux_x86_64/../modelsim.ini
+# Loading project WISC-CVP14
+# Error opening /filespace/people/m/meggers/Git/WISC-CVP14/C:/Users/Matthew/Documents/WISC-CVP14/CVP14.v
+# Path name '/filespace/people/m/meggers/Git/WISC-CVP14/C:/Users/Matthew/Documents/WISC-CVP14/CVP14.v' doesn't exist.
+# Error opening /filespace/people/m/meggers/Git/WISC-CVP14/C:/Users/Matthew/Documents/WISC-CVP14/ALU.v
+# Path name '/filespace/people/m/meggers/Git/WISC-CVP14/C:/Users/Matthew/Documents/WISC-CVP14/ALU.v' doesn't exist.
