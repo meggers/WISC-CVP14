@@ -4,8 +4,6 @@ input wr_en;
 input [3:0] rd_addr_1, rd_addr_2, wr_dst;
 input [15:0] wr_data;
 
-wire [15:0] test;
-
 output reg [15:0] data_1, data_2;
 
 reg [7:0] regTable [15:0];
