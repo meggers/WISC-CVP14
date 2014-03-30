@@ -6,7 +6,7 @@ module VADD (clk, op_1, op_2, sum);
   
   input   clk;
   input  [255:0] op_1, op_2;
-  output [255:0] sum;
+  output reg [255:0] sum;
   
   reg [5:0] dimension;
   
@@ -30,12 +30,18 @@ module VADD (clk, op_1, op_2, sum);
   reg [4:0] exp_1, exp_2;
   reg signed [5:0] exp_diff;
   
-  reg [4:0] exp_1_shifted, exp_2_shifted;
+  reg [4:0] exp_shifted;
   
   reg [9:0] mantissa_1_shifted, mantissa_2_shifted;
   
+  reg [10:0] mantissa_sum;
+  
+  reg [5:0] i;
+  
   always @(posedge clk) begin
-    //sum <= vector_sum;
+    for (i = 0; i < maxDimensions; i = i + 1) begin 
+      sum[dimensionSize * i +: dimensionSize] <= vector_sum[i];
+    end
   end
   
   always @(op_1, op_2) begin
@@ -48,25 +54,30 @@ module VADD (clk, op_1, op_2, sum);
       exp_diff = exp_1 - exp_2;
         
       if (exp_diff > 0) begin
-        exp_1_shifted <= exp_1;
-        exp_2_shifted <= exp_1;
+        exp_shifted <= exp_1;
         
         mantissa_1_shifted <= vector_1[dimension][dimensionSize - mantissa_offset -: mantissa_length];
         mantissa_2_shifted <= vector_2[dimension][dimensionSize - mantissa_offset -: mantissa_length] >> exp_diff;
       end else if (exp_diff < 0) begin
-        exp_1_shifted <= exp_2;
-        exp_2_shifted <= exp_2;
+        exp_shifted <= exp_2;
         
         mantissa_1_shifted <= vector_1[dimension][dimensionSize - mantissa_offset -: mantissa_length] >> exp_diff;
         mantissa_2_shifted <= vector_2[dimension][dimensionSize - mantissa_offset -: mantissa_length];
       end else begin
-        exp_1_shifted <= exp_1;
-        exp_2_shifted <= exp_2;
+        exp_shifted <= exp_1;
         
         mantissa_1_shifted <= vector_1[dimension][dimensionSize - mantissa_offset -: mantissa_length];
         mantissa_2_shifted <= vector_2[dimension][dimensionSize - mantissa_offset -: mantissa_length]; 
       end
       
+      mantissa_sum = mantissa_1_shifted + mantissa_2_shifted;
+      
+      if (mantissa_sum[10]) begin
+         mantissa_sum = mantissa_sum >> 1;
+         exp_shifted = exp_shifted >> 1;
+      end
+      
+      vector_sum[dimension] = {1'b0, exp_shifted, mantissa_sum[9:0]};
     end
   end
   
