@@ -3,7 +3,7 @@ module DRAM(output[15:0] DataOut, input [15:0] Addr, input Clk1,
   
   reg latchedRD, latchedWR;
   reg [15:0] latchedAddr, latchedDataOut, latchedDataIn;
-  reg [15:0] mem [15:0]; // The memory structure
+  reg [15:0] mem [65535:0]; // The memory structure
   
   assign DataOut = latchedDataOut;
   
