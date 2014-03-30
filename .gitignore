@@ -4,3 +4,5 @@ transcript
 *.cr.mti
 work/
 *.nfs*
+*~
+*.wlf
