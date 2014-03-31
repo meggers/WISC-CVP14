@@ -18,6 +18,7 @@ parameter NOP = 4'b1111;
             
 VectorRegFile vrf(.clk(Clk1), .rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrDst),
                   .wr_data(wrData), .wr_en(enable), .data_1(data1), .data_2(data2));
+                  
 ScalarRegFile srf(.clk(Clk1), .rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrDst),
                   .wr_data(wrData), .wr_en(enable), .data_1(data1), .data_2(data2));
 ALU alu();
