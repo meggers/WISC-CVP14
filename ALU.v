@@ -1,5 +1,5 @@
 module ALU (clk, op_1, op_2, opcode, result);
-  output [255:0] result;
+  output reg [255:0] result;
   input clk, op_1, op_2;
   input [3:0] opcode;
   parameter VADD = 4'b0000;
@@ -15,40 +15,40 @@ module ALU (clk, op_1, op_2, opcode, result);
   always @(posedge clk) begin
     case(opcode)
       VADD:begin
-            result = VADDfunc(op_1, op2);
+            result = VADDfunc(op_1, op_2);
             end
       VDOT:begin
-            result = VDOTfunc(op_1, op2);
+            //result = VDOTfunc(op_1, op2);
            end
       SMUL:begin
-            result = SMULfunc(op_1, op2);
+            //result = SMULfunc(op_1, op2);
            end
       SST:begin
-            result = SSTfunc(op_1, op2);
+            //result = SSTfunc(op_1, op2);
            end
       VLD:begin
-            result = VLDfunc(op_1, op2);
+            //result = VLDfunc(op_1, op2);
            end
       VST:begin
-            result = VSTfunc(op_1, op2);
+            //result = VSTfunc(op_1, op2);
            end
       SLL:begin
-            result = SLLfunc(op_1, op2);
+            //result = SLLfunc(op_1, op2);
            end
       SLH:begin
-            result = SLHfunc(op_1, op2);
+            //result = SLHfunc(op_1, op2);
            end
       J:begin
-            result = Jfunc(op_1, op2);
+            //result = Jfunc(op_1, op2);
            end                                            
       NOP:begin
-            result = NOPfunc(op_1, op2);
+            //result = NOPfunc(op_1, op2);
            end
       default: $display("error");
     endcase
   end
 
-function [255:0] VADD;
+function [255:0] VADDfunc;
   
   input [255:0] op_1, op_2;
   reg [5:0] dimension;
@@ -116,7 +116,7 @@ function [255:0] VADD;
     end
   
     for (dimension = 0; dimension < maxDimensions; dimension = dimension + 1) begin 
-      VADD[dimensionSize * dimension +: dimensionSize] = vector_sum[dimension];
+      VADDfunc[dimensionSize * dimension +: dimensionSize] = vector_sum[dimension];
     end
   end
   
