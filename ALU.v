@@ -1,13 +1,54 @@
-module ALU ();
+module ALU (clk, op_1, op_2, opcode, result);
+  output [255:0] result;
+  input clk, op_1, op_2;
+  input [3:0] opcode;
+  parameter VADD = 4'b0000;
+  parameter VDOT = 4'b0001;
+  parameter SMUL = 4'b0010;
+  parameter SST = 4'b0011;
+  parameter VLD = 4'b0100;
+  parameter VST = 4'b0101;
+  parameter SLL = 4'b0110;
+  parameter SLH = 4'b0111;
+  parameter J = 4'b1000;
+  parameter NOP = 4'b1111;
+  always @(posedge clk) begin
+    case(opcode)
+      VADD:begin
+            result = VADDfunc(op_1, op2);
+            end
+      VDOT:begin
+            result = VDOTfunc(op_1, op2);
+           end
+      SMUL:begin
+            result = SMULfunc(op_1, op2);
+           end
+      SST:begin
+            result = SSTfunc(op_1, op2);
+           end
+      VLD:begin
+            result = VLDfunc(op_1, op2);
+           end
+      VST:begin
+            result = VSTfunc(op_1, op2);
+           end
+      SLL:begin
+            result = SLLfunc(op_1, op2);
+           end
+      SLH:begin
+            result = SLHfunc(op_1, op2);
+           end
+      J:begin
+            result = Jfunc(op_1, op2);
+           end                                            
+      NOP:begin
+            result = NOPfunc(op_1, op2);
+           end
+      default: $display("error");
+    endcase
+  end
 
-endmodule
-
-module VADD (clk, op_1, op_2, sum);
-  
-  input   clk;
-  input  [255:0] op_1, op_2;
-  output reg [255:0] sum;
-  
+function [255:0] VADDfunc (op_1, op_2);
   reg [5:0] dimension;
   
   localparam maxDimensions   = 16,
@@ -37,7 +78,7 @@ module VADD (clk, op_1, op_2, sum);
   reg [10:0] mantissa_sum;
   
   reg [5:0] i;
-  
+
   always @(posedge clk) begin
     for (i = 0; i < maxDimensions; i = i + 1) begin 
       sum[dimensionSize * i +: dimensionSize] <= vector_sum[i];
@@ -79,6 +120,33 @@ module VADD (clk, op_1, op_2, sum);
       
       vector_sum[dimension] = {1'b0, exp_shifted, mantissa_sum[9:0]};
     end
-  end
+  end  
+endfunction
+function [255:0] VDOTfunc (op_1, op_2);
   
+endfunction
+function [255:0] SMULfunc (op_1, op_2);
+  
+endfunction
+function [255:0] VLDfunc (op_1, op_2);
+  
+endfunction
+function [255:0] VSTfunc (op_1, op_2);
+  
+endfunction
+function [255:0] SLHfunc (op_1, op_2);
+  
+endfunction
+function [255:0] SLLfunc (op_1, op_2);
+  
+endfunction
+function [255:0] SSTfunc (op_1, op_2);
+  
+endfunction
+function [255:0] Jfunc (op_1, op_2);
+  
+endfunction
+function [255:0] NOPfunc (op_1, op_2);
+  
+endfunction
 endmodule

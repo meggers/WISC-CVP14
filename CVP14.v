@@ -1,6 +1,6 @@
 module CVP14(output [15:0] Addr, output RD, output WR, output V, output U, output [15:0] dataOut, 
             input Reset, input Clk1, input Clk2, input [15:0] DataIn);
-reg enable;
+reg enable, op1, op2, imm; //op1 and op2 are 1 when vectors, 0 when scalar, op2 and imm will be 1 when immediate
 reg [2:0] addr1, addr2, wrDst;
 reg [3:0] opCode;
 reg [255:0] data1, data2, wrData;
@@ -21,8 +21,7 @@ VectorRegFile vrf(.clk(Clk1), .rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrDs
 ScalarRegFile srf(.clk(Clk1), .rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrDst),
                   .wr_data(wrData), .wr_en(enable), .data_1(data1), .data_2(data2));
 ALU alu();
-//VADD vadd();
-//vadd vadd1(.clk(Clk1), .op_1(data1), .op_2(data2), .sum(wrData));
+//VADD vadd(.clk(Clk1), .op_1(data1), .op_2(data2), .sum(wrData));
 
 always@(*) begin
   opCode[3:0] = DataIn[15:12];
@@ -30,10 +29,17 @@ always@(*) begin
     VADD:begin addr1 <= DataIn[8:6];
            addr2 <= DataIn[5:3];
            enable <= 0;
-           
+           op1 <= 1;
+           op2 <= 1;
+           imm <= 0;
          end
-      
-    
+    VDOT:begin addr1 <= DataIn[8:6];
+           addr2 <= DataIn[5:3];
+           enable <= 0;
+           op1 <= 1;
+           op2 <= 1;
+           imm <= 0;
+         end
     default: $display("error");
   endcase
 end
