@@ -1,7 +1,8 @@
-module ALU ();
-
+module ALU (funCtrl);
+  input
 endmodule
 
+/* Vector ADD */
 module VADD (clk, op_1, op_2, sum);
   
   input   clk;
