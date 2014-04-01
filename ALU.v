@@ -1,6 +1,7 @@
 module ALU (clk, op_1, op_2, opcode, result);
   output [255:0] result;
-  input clk, op_1, op_2;
+  input clk;
+  input [255:0] op_1, op_2;
   input [3:0] opcode;
   parameter VADD = 4'b0000;
   parameter VDOT = 4'b0001;
@@ -48,7 +49,7 @@ module ALU (clk, op_1, op_2, opcode, result);
     endcase
   end
 
-function [255:0] VADDfunc (op_1, op_2);
+function [255:0] VADDfunc (input [255:0]op_1, op_2);
   reg [5:0] dimension;
   
   localparam maxDimensions   = 16,
@@ -119,34 +120,34 @@ function [255:0] VADDfunc (op_1, op_2);
       end
       
       vector_sum[dimension] = {1'b0, exp_shifted, mantissa_sum[9:0]};
-    end
-  end  
-endfunction
-function [255:0] VDOTfunc (op_1, op_2);
+      end
+    end  
+  endfunction
+  function [255:0] VDOTfunc (input op_1, op_2);
+    
+  endfunction
+  function [255:0] SMULfunc (input op_1, op_2);
   
-endfunction
-function [255:0] SMULfunc (op_1, op_2);
+  endfunction
+  function [255:0] VLDfunc (input op_1, op_2);
   
-endfunction
-function [255:0] VLDfunc (op_1, op_2);
+  endfunction
+  function [255:0] VSTfunc (input op_1, op_2);
   
-endfunction
-function [255:0] VSTfunc (op_1, op_2);
+  endfunction
+  function [255:0] SLHfunc (input op_1, op_2);
   
-endfunction
-function [255:0] SLHfunc (op_1, op_2);
+  endfunction
+  function [255:0] SLLfunc (input op_1, op_2);
   
-endfunction
-function [255:0] SLLfunc (op_1, op_2);
+  endfunction
+  function [255:0] SSTfunc (input op_1, op_2);
   
-endfunction
-function [255:0] SSTfunc (op_1, op_2);
+  endfunction
+  function [255:0] Jfunc (input op_1, op_2);
   
-endfunction
-function [255:0] Jfunc (op_1, op_2);
-  
-endfunction
-function [255:0] NOPfunc (op_1, op_2);
-  
-endfunction
+  endfunction
+  function [255:0] NOPfunc (input op_1, op_2);
+    
+  endfunction
 endmodule
