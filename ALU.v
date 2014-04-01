@@ -130,30 +130,70 @@ endfunction
 
 endmodule
 
-module ALU_t();
+module float_add_t();
   
-  reg clk;
-  reg [255:0] op_1, op_2; 
-  reg [3:0] opcode;
-  wire [255:0] result;
-  
-  parameter VADD = 4'b0000;
-  
-  ALU dut(.clk(clk), .op_1(op_1), .op_2(op_2), .opcode(opcode), .result(result)); 
-  
-  initial begin 
-    clk = 0;
-    opcode = VADD;
-    forever #10 clk = ~clk;
-  end
+  parameter op_1 = 16'h3C00, 
+            op_2 = 16'h3C00; 
+            
+  reg [15:0] result;
   
   initial begin
-    
-    op_1 = 256'h3C003C003C003C003C003C003C003C003C003C003C003C003C003C003C003C00;
-    op_2 = 256'h3C003C003C003C003C003C003C003C003C003C003C003C003C003C003C003C00;
-    #200;
-    
+    result <= float_add(op_1, op_2);
+    $display("result: %h", result);
     $stop;
   end
+  
+function float_add;
+  input [15:0] float_1, float_2;
+  
+  parameter exponent_bias   = 15;
+  
+  parameter float_width     = 15;
+  
+  parameter exponent_offset = 1,
+            mantissa_offset = 6;
+             
+  parameter exponent_length = 4,
+            mantissa_length = 9;
+            
+  reg signed [4:0] exp_1, exp_2, exp_shifted;
+  reg signed [5:0] exp_diff;
+  
+  reg [9:0] mantissa_1, mantissa_2;
+  reg [10:0] mantissa_sum;
+  
+  begin
+    exp_1 = float_1[(float_width - exponent_offset) -: exponent_length] - exponent_bias;
+    exp_2 = float_2[(float_width - exponent_offset) -: exponent_length] - exponent_bias;
+    exp_diff = exp_1 - exp_2;
+        
+    if (exp_diff > 0) begin
+      exp_shifted = exp_1;
+        
+      mantissa_1 = float_1[(float_width - mantissa_offset) -: mantissa_length];
+      mantissa_2 = float_2[(float_width - mantissa_offset) -: mantissa_length] >> exp_diff;
+    end else if (exp_diff < 0) begin
+      exp_shifted = exp_2;
+        
+      mantissa_1 = float_1[(float_width - mantissa_offset) -: mantissa_length] >> exp_diff;
+      mantissa_2 = float_2[(float_width - mantissa_offset) -: mantissa_length];
+    end else begin
+      exp_shifted = exp_1;
+        
+      mantissa_1 = float_1[(float_width - mantissa_offset) -: mantissa_length];
+      mantissa_2 = float_2[(float_width - mantissa_offset) -: mantissa_length]; 
+    end
+      
+    mantissa_sum = mantissa_1 + mantissa_2;
+      
+    if (mantissa_sum[10]) begin
+      mantissa_sum = mantissa_sum >> 1;
+      exp_shifted = exp_shifted >> 1;
+    end
+    
+    float_add = {1'b0, exp_shifted, mantissa_sum[9:0]};
+  end
+
+endfunction
   
 endmodule
