@@ -60,7 +60,7 @@ always@(posedge Clk1, posedge Clk2) begin
         addr1 = DataIn[11:9];
         
       end
-    VLD:
+    /*VLD:
       begin
         addr1 = ;
         addr2 = ;
@@ -84,11 +84,11 @@ always@(posedge Clk1, posedge Clk2) begin
       begin
         addr1 = ;
         addr2 = ;
-      end
+      end*/
     default: /* NOP*/  
       begin
-        addr1 = ;
-        addr2 = ;
+        addr1 = 0;
+        addr2 = 0;
       end
   endcase
   end
