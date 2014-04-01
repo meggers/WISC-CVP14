@@ -1,5 +1,5 @@
-module ALU (funCtrl);
-  input
+module ALU ();
+  
 endmodule
 
 /* Vector ADD */
