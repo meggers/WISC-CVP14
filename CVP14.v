@@ -1,4 +1,4 @@
-module CVP14(output [15:0] Addr, output RD, output WR, output V, output U, output [15:0] dataOut, 
+module CVP14(output [15:0] Addr, output RD, output WR, output V, output [15:0] dataOut, 
             input Reset, input Clk1, input Clk2, input [15:0] DataIn);
 wire enable, ready;
 wire [2:0] addr1, addr2, wrDst;
@@ -17,9 +17,6 @@ localparam SLH = 4'b0111;
 localparam J = 4'b1000;
 localparam NOP = 4'b1111;
 
-localparam vector = 1'b1;
-localparam scalar = 1'b0;
-
 PC pc(.Clk1(Clk1), .Clk2(Clk2), .rst(Reset), .next(ready), .nextAddr(nextAddr), .iAddr(instrAddr));
             
 VectorRegFile vrf(.clk(Clk1), .rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrDst),
@@ -27,8 +24,6 @@ VectorRegFile vrf(.clk(Clk1), .rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrDs
 ScalarRegFile srf(.clk(Clk1), .rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrDst),
                   .wr_data(wrData), .wr_en(enable), .data_1(data1), .data_2(data2));
 ALU alu();
-
-staticram DRAM(.DataOut(), .Addr(addr), .DataIn(), .clk1(), .clk2(), .RD(), .WR());
 
 assign addr = ready ? instrAddr : dataAddr;
 
