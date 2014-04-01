@@ -23,11 +23,9 @@ localparam scalar = 1'b0;
 PC pc(.Clk1(Clk1), .Clk2(Clk2), .rst(Reset), .next(ready), .nextAddr(nextAddr), .iAddr(instrAddr));
             
 VectorRegFile vrf(.clk(Clk1), .rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrDst),
-                  .wr_data(wrData), .wr_en(enable), .data_1(vectorData1), .data_2(vectorData2));
-                  
+                  .wr_data(wrData), .wr_en(enable), .data_1(data1), .data_2(data2));
 ScalarRegFile srf(.clk(Clk1), .rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrDst),
-                  .wr_data(wrData), .wr_en(enable), .data_1(scalarData1), .data_2(scalarData2));
-
+                  .wr_data(wrData), .wr_en(enable), .data_1(data1), .data_2(data2));
 ALU alu();
 
 staticram DRAM(.DataOut(), .Addr(addr), .DataIn(), .clk1(), .clk2(), .RD(), .WR());
