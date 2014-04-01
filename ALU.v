@@ -1,5 +1,6 @@
 module ALU ();
 
+/* Vector Add */
 function [255:0] VADDfunc;
   
   input [255:0] op_1, op_2;
@@ -72,6 +73,28 @@ function [255:0] VADDfunc;
     end
   end
   
+endfunction
+
+/* Scalar Load Low */
+function [15:0] SLL;
+  input [15:0] op_1; // Contents of the register to be written to
+  input [8:0] op_2;  // Immediate Value to be loaded
+  
+  parameter [15:0] masked;
+  masked = op_1 & 16'hFF00; // Mask off lower bits
+  
+  SLL = masked | {8'h00, op_2}
+endfunction
+
+/* Scalar Load High */
+function [15:0] SLH;
+  input [15:0] op_1; // Contents of the register to be written to
+  input [8:0] op_2;  // Immediate Value to be loaded
+  
+  parameter [15:0] masked;
+  masked = op_1 & 16'h00FF; // Maske off upper bits
+  
+  SLH = masked | {op_2, 8'h00};
 endfunction
 
 endmodule
