@@ -1,10 +1,11 @@
 module CVP14(output [15:0] Addr, output RD, output WR, output V, output [15:0] dataOut, 
             input Reset, input Clk1, input Clk2, input [15:0] DataIn);
-            
+
+`include "functions.v"
+
 wire wr_Vector, wr_Scalar, ready;
-wire [2:0] addr1, addr2, wrDst;
-wire [15:0] scalarData1, scalarData2, scalarWrData, nextInstrAddr, dataAddr, addr;
-wire [255:0] vectorData1, vectorData2, vectorWrData;
+
+wire [15:0] dataAddr, addr;
 
 /* State Definitions */
 localparam Fetch = 3'd0;
@@ -26,21 +27,29 @@ localparam SLH = 4'b0111;
 localparam NOP = 4'b1111;
 
 /* "Global" Variables */
+reg wr_vector, wr_scalar;
 reg [1:0] state, nextState;
-reg [2:0] dstAddr;
-reg [3:0] cycles, count, code;
-reg [15:0] op1, op2;
+reg [2:0] addr1, addr2, addrDst, wrAddr;
+reg [3:0] cycles, count, code, func;
+reg [5:0] offset;
+reg [7:0] immediate;
+reg [15:0] scalarToLoad, scalarData1, scalarData2, scalarWrData, nextInstrAddr;
+reg [255:0] op1, op2, data1, data2, vectorToLoad, vectorData1, vectorData2, vectorWrData, result;
 
 VectorRegFile vrf(.rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrAddr),
-                  .wr_data(vectorWrData), .wr_en(wr_Vector), .data_1(vectorData1), .data_2(vectorData2));
+                  .wr_data(vectorWrData), .wr_en(vector_en), .data_1(vectorData1), .data_2(vectorData2));
 ScalarRegFile srf(.rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrAddr),
-                  .wr_data(scalarWrData), .wr_en(wr_Scalar), .data_1(scalarData1), .data_2(scalarData2));
+                  .wr_data(scalarWrData), .wr_en(scalar_en), .data_1(scalarData1), .data_2(scalarData2));
+                  
+ALU alu(.op_1(op1), .op_2(op2), .opcode(func), .result(result));
                   
 /* Flop the new state in, using only one always block makes it much more likely
     that latches will be synthesized, which is undesirable */
 always @(posedge Clk1)
-  if(Reset)
+  if(Reset) begin
     state <= Fetch;
+    nextInstrAddr <= 16'h0000;
+  end
   else
     state <= nextState;
     
@@ -50,9 +59,9 @@ always @(*) begin
   // Set to default values, again for avoiding latches (552 trick)
   nextState = Fetch;
   Addr = 16'h0000;
-  wr_Vector = 1'b0;
-  wr_Scalar = 1'b0;
-  RD = 1'b1;
+  vector_en = 1'b0;
+  scalar_en = 1'b0;
+  RD = 1'b0;
   WR = 1'b0;
   V = 1'b0;
   dataOut = 16'h0000;
@@ -71,21 +80,27 @@ always @(*) begin
       RD = 1'b0;
       WR = 1'b0;
       
-      decode instr(.instr(DataIn), 
-                   .dstAddr(dst),
+      decode instr(.instr(DataIn), /* In */
+      
+                   .v_en(wr_vector), /* Out */
+                   .s_en(wr_scalar),
+                   .dstAddr(addrDst),
                    .addr1(addr1), 
-                   .addr2(addr2), 
+                   .addr2(addr2),
+                   .immediate(immediate), 
+                   .offset(offset),
                    .cycleCount(count),
                    .functype(code));
                    
-      picker ofOps(.functype(code),
+      picker ofOps(.functype(code),  /* In */
                    .vectorData1(vectorData1),
                    .vectorData2(vectorData2),
                    .scalarData1(scalarData1),
                    .scalarData2(scalarData2),
                    .immediate(immediate),
-                   .op1(op1),
-                   .op2(op2));
+                   
+                   .op1(data1), /* Out */
+                   .op2(data2));
                    
       cycles = 4'h0;
       
@@ -97,39 +112,36 @@ always @(*) begin
         nextState = Execute;
     end
     
-    Execute: begin
+    Execute: begin // Where things happen in one clock cycle
       RD = 1'b0;
       WR = 1'b0;
       
-      // Apply inputs to the function file max wrote here
+      // Stimulate the ALU; Result will be in result
+      op1 = data1;
+      op2 = data2;
+      func = code;
       
-      if(cycles == count)
-        cycles = 4'h0;
-        nextState = WriteBack;
-      else
-        cycles = cycles + 1;
+      nextState = WriteBack;
     end
     
-    Load: begin
+    Load: begin // Where things are forced to take multiple clock cycles
       Addr = op1 + cycles;
       RD = 1'b1;
       WR = 1'b0;
       
-      if(cycles > 0)
-        if(loadVector)
+      if(cycles > 0) begin
           vectorToLoad[((16*cycles)-1) -: 15] = DataIn;
-        else
           scalarToLoad = DataIn;
+      end
           
       if(cycles == count)
-        cycles = 4'h0;
         nextState = WriteBack;
       else
         cycles = cycles + 1;
     end
     
-    Store: begin
-      Addr = op1 + cycles
+    Store: begin // Where things are forced to take multiple clock cycles
+      Addr = op1 + cycles;
       RD = 1'b0;
       WR = 1'b1;
       
@@ -140,12 +152,38 @@ always @(*) begin
     end
     
     WriteBack: begin
+      RD = 1'b0;
+      WR = 1'b0;
       
+      if(wr_vector) begin
+        vector_en = 1'b1;
+        scalar_en = 1'b0;
+        
+        if(code == VLD)
+          vectorWrData = vectorToLoad;
+        else
+          vectorWrData = result;
+          
+      end else if(wr_scalar) begin
+        scalar_en = 1'b1;
+        vector_en = 1'b0;
+        
+        scalarWrData = result[15:0];
+        
+      end else begin
+        scalar_en = 1'b0;
+        vector_en = 1'b0;
+      end
+      
+      nextState = Fetch;
     end
     
     default:
-      nextState = Fetch
+      nextState = Fetch;
+  endcase
 end
+
+endmodule
 
 /*
 
@@ -222,4 +260,4 @@ always@(posedge Clk1, posedge Clk2) begin
   end
 end
 */
-endmodule
+
