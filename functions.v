@@ -51,34 +51,25 @@ function float_add;
     if (exp_diff < 0) begin      
       exp_shifted = exp_2;
       exp_diff = ~exp_diff + 1; // Convert to positive diff for shifting 
-        
+      sign = float_2[sign_bit];
+      
       mantissa_1 = {hidden_bit, float_1[mantissa_msb : mantissa_lsb]} >> exp_diff;
       mantissa_2 = {hidden_bit, float_2[mantissa_msb : mantissa_lsb]};
+      
     end else begin
       exp_shifted = exp_1;
-        
+      sign = float_1[sign_bit];
+
       mantissa_1 = {hidden_bit, float_1[mantissa_msb : mantissa_lsb]};
       mantissa_2 = {hidden_bit, float_2[mantissa_msb : mantissa_lsb]} >> exp_diff;
-      
-      $display("mantissa_1 %b", mantissa_1);
-      $display("mantissa_2 %b", mantissa_2);
     end
     
-    // Step 1c: Account for negative values
-    if (float_1[sign_bit] & float_2[sign_bit]) begin
-      sign = 1;
-    end else if (float_1[sign_bit]) begin
-      sign = mantissa_1 > mantissa_2 ? 1 : 0;
-      mantissa_1 = ~mantissa_1 + 1;
-    end else if (float_2[sign_bit]) begin
-      sign = mantissa_2 > mantissa_1 ? 1 : 0;
-      mantissa_2 = ~mantissa_2 + 1;
-    end else begin
-      sign = 0;
-    end
-      
     // Step 2: Add
-    mantissa_sum = mantissa_1 + mantissa_2;
+    if (float_1[sign_bit] ~^ float_2[sign_bit]) begin
+      mantissa_sum = mantissa_1 + mantissa_2;
+    end else begin
+      mantissa_sum = float_1[sign_bit] ? mantissa_2 - mantissa_1 : mantissa_1 - mantissa_2;
+    end
       
     // Step 3: Normalize result
     if (mantissa_sum != 0) begin
