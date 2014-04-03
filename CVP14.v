@@ -97,7 +97,7 @@ always @(posedge Clk1)
     
 /* Determine what the inputs represent and what the outputs should be based on 
     the current state */ 
-always @(*) begin
+always @(state, DataIn) begin
   // Set to default values, again for avoiding latches (552 trick)
   nextState = Fetch;
   memAddr = 16'h0000;
@@ -119,18 +119,19 @@ always @(*) begin
     end
    
     Decode: begin
-      instrIn = DataIn;
+      instrIn = DataIn; /* Outputs of decode and picker are now relevant until
+                           the next fetch state, most notably op1 and op2. */
                    
-      cycles = 4'h0;
-      
+      cycles = 4'h0; // Reset the counter
       nextState = Execute;
     end
     
-    Execute: begin // Where things happen in one clock cycle      
-      // Stimulate the ALU; Result will be in result
+    Execute: begin // Where things happen in one clock cycle    
+      
+      // Stimulate the ALU
       op1 = data1;
       op2 = data2;
-      func = code;
+      func = code; // result is now relevant until the next fetch state
       
       if(code == VLD)
         nextState = Load;
@@ -176,11 +177,13 @@ always @(*) begin
         else
           vectorWrData = result;
           
-      end else /*(wr_scalar)*/ begin
+      end else if(wr_scalar) begin
         scalar_en = 1'b1;
         wrAddr = addrDst;
         
         scalarWrData = result[15:0];
+      end else /* NOP */ begin
+        // Don't set either enable
       end
       
       nextState = Fetch;

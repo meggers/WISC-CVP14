@@ -47,7 +47,7 @@ module ALU (op_1, op_2, opcode, result);
             //result = Jfunc(op_1, op2);
            end                                            
       default:begin /* NOP */
-        
+        result = 155'd0;
       end
     endcase
 endmodule

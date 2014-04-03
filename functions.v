@@ -70,3 +70,28 @@ function float_add;
   end
 
 endfunction
+
+function [15:0] ScalarLoadLow;
+   input [15:0] op_1; // Contents of the register to be written to
+   input [7:0] op_2;  // Immediate Value to be loaded
+
+ begin
+   masked = op_1 & 16'hFF00; // Mask off lower bits
+
+   ScalarLoadLow = masked | {8'h00, op_2};
+ end
+ 
+ endfunction
+ 
+function [15:0] ScalarLoadHigh;
+   input [15:0] op_1; // Contents of the register to be written to
+   input [7:0] op_2;  // Immediate Value to be loaded
+
+ begin
+  masked = op_1 & 16'h00FF; // Maske off upper bits
+
+  ScalarLoadHigh = masked | {op_2, 8'h00};
+ end
+ 
+endfunction
+ 
