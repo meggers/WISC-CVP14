@@ -3,25 +3,16 @@ module ALU (op_1, op_2, opcode, result);
   
   input [3:0] opcode;
   input [255:0] op_1, op_2;
-  
   output reg [255:0] result;
   
-  localparam VADD = 4'b0000;
-  localparam VDOT = 4'b0001;
-  localparam SMUL = 4'b0010;
-  localparam SST = 4'b0011;
-  localparam VLD = 4'b0100;
-  localparam VST = 4'b0101;
-  localparam SLL = 4'b0110;
-  localparam SLH = 4'b0111;
-  localparam J = 4'b1000;
-  localparam NOP = 4'b1111;
+  `include "functions.v"
   
   always @(*)
     case(opcode)
-      VADD:begin
-            result = VADDfunc(op_1, op_2);
-            end
+      VADD:
+        begin
+          result <= VADDfunc(op_1, op_2);
+        end
       VDOT:begin
             //result = VDOTfunc(op_1, op2);
            end
@@ -50,4 +41,6 @@ module ALU (op_1, op_2, opcode, result);
         result = 155'd0;
       end
     endcase
+  end
+
 endmodule
