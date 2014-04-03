@@ -58,8 +58,8 @@ endmodule
 module float_add_t();
   `include "functions.v"
   
-  reg [15:0] op_1 = 16'h3C00, 
-             op_2 = 16'h3C00; 
+  reg [15:0] op_1 = 16'hC680, 
+             op_2 = 16'h4680; 
             
   reg [15:0] result;
 
