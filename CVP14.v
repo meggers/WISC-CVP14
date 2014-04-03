@@ -1,10 +1,6 @@
 module CVP14(output [15:0] Addr, output RD, output WR, output V, output [15:0] dataOut, 
             input Reset, input Clk1, input Clk2, input [15:0] DataIn);
 
-`include "functions.v"
-
-wire wr_Vector, wr_Scalar, ready;
-
 wire [15:0] dataAddr, addr;
 
 /* State Definitions */
@@ -27,21 +23,68 @@ localparam SLH = 4'b0111;
 localparam NOP = 4'b1111;
 
 /* "Global" Variables */
-reg wr_vector, wr_scalar;
+reg wr_vector, wr_scalar, vector_en, scalar_en, read, write, flow;
 reg [1:0] state, nextState;
 reg [2:0] addr1, addr2, addrDst, wrAddr;
 reg [3:0] cycles, count, code, func;
 reg [5:0] offset;
 reg [7:0] immediate;
-reg [15:0] scalarToLoad, scalarData1, scalarData2, scalarWrData, nextInstrAddr;
+reg [15:0] scalarToLoad, scalarData1, scalarData2, scalarWrData, nextInstrAddr, memAddr, data, instrIn;
 reg [255:0] op1, op2, data1, data2, vectorToLoad, vectorData1, vectorData2, vectorWrData, result;
 
-VectorRegFile vrf(.rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrAddr),
-                  .wr_data(vectorWrData), .wr_en(vector_en), .data_1(vectorData1), .data_2(vectorData2));
-ScalarRegFile srf(.rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrAddr),
-                  .wr_data(scalarWrData), .wr_en(scalar_en), .data_1(scalarData1), .data_2(scalarData2));
+VectorRegFile vrf(.rd_addr_1(addr1), 
+                  .rd_addr_2(addr2), 
+                  .wr_dst(wrAddr),
+                  .wr_data(vectorWrData), 
+                  .wr_en(vector_en), 
                   
-ALU alu(.op_1(op1), .op_2(op2), .opcode(func), .result(result));
+                  .data_1(vectorData1), 
+                  .data_2(vectorData2));
+                  
+ScalarRegFile srf(.rd_addr_1(addr1), 
+                  .rd_addr_2(addr2), 
+                  .wr_dst(wrAddr),
+                  .wr_data(scalarWrData), 
+                  .wr_en(scalar_en), 
+                  
+                  .data_1(scalarData1), 
+                  .data_2(scalarData2));
+                  
+ALU alu(.op_1(op1), 
+        .op_2(op2), 
+        .opcode(func), 
+        
+        .result(result));
+                  
+decode instr(.instr(instrIn), /* In */
+      
+              .v_en(wr_vector), /* Out */
+              .s_en(wr_scalar),
+              .dstAddr(addrDst),
+              .addr1(addr1), 
+              .addr2(addr2),
+              .immediate(immediate), 
+              .offset(offset),
+              .cycleCount(count),
+              .functype(code));
+                   
+picker ofOps(.functype(code),  /* In */
+             .vectorData1(vectorData1),
+             .vectorData2(vectorData2),
+             .scalarData1(scalarData1),
+             .scalarData2(scalarData2),
+             .immediate(immediate),
+             .offset(offset),
+                   
+             .op1(data1), /* Out */
+             .op2(data2));  
+             
+// The registers on the right hand side will only be asserted at the correct times.
+assign RD = read;
+assign WR = write;
+assign V = flow;
+assign Addr = memAddr;
+assign dataOut = data;          
                   
 /* Flop the new state in, using only one always block makes it much more likely
     that latches will be synthesized, which is undesirable */
@@ -49,89 +92,60 @@ always @(posedge Clk1)
   if(Reset) begin
     state <= Fetch;
     nextInstrAddr <= 16'h0000;
-  end
-  else
+  end else
     state <= nextState;
     
 /* Determine what the inputs represent and what the outputs should be based on 
-    the current state */
+    the current state */ 
 always @(*) begin
   // Set to default values, again for avoiding latches (552 trick)
   nextState = Fetch;
-  Addr = 16'h0000;
+  memAddr = 16'h0000;
   vector_en = 1'b0;
   scalar_en = 1'b0;
-  RD = 1'b0;
-  WR = 1'b0;
-  V = 1'b0;
-  dataOut = 16'h0000;
+  read = 1'b0;
+  write = 1'b0;
+  flow = 1'b0;
+  instrIn = 16'h0000;
+  data = 16'h0000;
   
   case(state)
     Fetch: begin
-      Addr = nextInstrAddr;
+      memAddr = nextInstrAddr;
       nextInstrAddr = nextInstrAddr + 1;
-      RD = 1'b1;
-      WR = 1'b0;
+      read = 1'b1;
       
       nextState = Decode;
     end
    
     Decode: begin
-      RD = 1'b0;
-      WR = 1'b0;
-      
-      decode instr(.instr(DataIn), /* In */
-      
-                   .v_en(wr_vector), /* Out */
-                   .s_en(wr_scalar),
-                   .dstAddr(addrDst),
-                   .addr1(addr1), 
-                   .addr2(addr2),
-                   .immediate(immediate), 
-                   .offset(offset),
-                   .cycleCount(count),
-                   .functype(code));
-                   
-      picker ofOps(.functype(code),  /* In */
-                   .vectorData1(vectorData1),
-                   .vectorData2(vectorData2),
-                   .scalarData1(scalarData1),
-                   .scalarData2(scalarData2),
-                   .immediate(immediate),
-                   
-                   .op1(data1), /* Out */
-                   .op2(data2));
+      instrIn = DataIn;
                    
       cycles = 4'h0;
       
-      if(code == VLD)
-        nextState = Load;
-      else if(code == VST || code == SST)
-        nextState = Store;
-      else
-        nextState = Execute;
+      nextState = Execute;
     end
     
-    Execute: begin // Where things happen in one clock cycle
-      RD = 1'b0;
-      WR = 1'b0;
-      
+    Execute: begin // Where things happen in one clock cycle      
       // Stimulate the ALU; Result will be in result
       op1 = data1;
       op2 = data2;
       func = code;
       
-      nextState = WriteBack;
+      if(code == VLD)
+        nextState = Load;
+      else if(code == VST)
+        nextState = Store;
+      else
+        nextState = WriteBack;
     end
     
     Load: begin // Where things are forced to take multiple clock cycles
-      Addr = op1 + cycles;
-      RD = 1'b1;
-      WR = 1'b0;
+      memAddr = result[15:0] + cycles;
+      read = 1'b1;
       
-      if(cycles > 0) begin
+      if(cycles > 0) begin // Else we are still waiting for the first component
           vectorToLoad[((16*cycles)-1) -: 15] = DataIn;
-          scalarToLoad = DataIn;
       end
           
       if(cycles == count)
@@ -141,9 +155,9 @@ always @(*) begin
     end
     
     Store: begin // Where things are forced to take multiple clock cycles
-      Addr = op1 + cycles;
-      RD = 1'b0;
-      WR = 1'b1;
+      memAddr = result[15:0] + cycles;
+      data = vectorData1[((cycles*16)-1) -: 15];
+      write = 1'b1;
       
       if(cycles == count)
         nextState = Fetch;
@@ -152,27 +166,21 @@ always @(*) begin
     end
     
     WriteBack: begin
-      RD = 1'b0;
-      WR = 1'b0;
       
       if(wr_vector) begin
         vector_en = 1'b1;
-        scalar_en = 1'b0;
+        wrAddr = addrDst;
         
         if(code == VLD)
           vectorWrData = vectorToLoad;
         else
           vectorWrData = result;
           
-      end else if(wr_scalar) begin
+      end else /*(wr_scalar)*/ begin
         scalar_en = 1'b1;
-        vector_en = 1'b0;
+        wrAddr = addrDst;
         
         scalarWrData = result[15:0];
-        
-      end else begin
-        scalar_en = 1'b0;
-        vector_en = 1'b0;
       end
       
       nextState = Fetch;
@@ -184,80 +192,3 @@ always @(*) begin
 end
 
 endmodule
-
-/*
-
-
-PC pc(.Clk1(Clk1), .Clk2(Clk2), .rst(Reset), .next(ready), .nextAddr(nextAddr), .iAddr(instrAddr));
-            
-VectorRegFile vrf(.clk(Clk1), .rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrDst),
-                  .wr_data(wrData), .wr_en(enable), .data_1(data1), .data_2(data2));
-ScalarRegFile srf(.clk(Clk1), .rd_addr_1(addr1), .rd_addr_2(addr2), .wr_dst(wrDst),
-                  .wr_data(wrData), .wr_en(enable), .data_1(data1), .data_2(data2));
-ALU alu();
-
-assign addr = ready ? instrAddr : dataAddr;
-
-Set control signals 
-always@(posedge Clk1, posedge Clk2) begin
-  if(ready) begin /* Reevaluate control signals 
-    ready = 1'b0;
-    
-  opCode = DataIn[15:12];
-  
-  case(opCode)
-    VADD:
-      begin 
-        addr1 = DataIn[8:6];
-        addr2 = DataIn[5:3];
-      end
-    VDOT:
-      begin
-        addr1 = DataIn[8:6];
-        addr2 = DataIn[5:3];
-      end
-    SMUL:
-      begin
-        addr1 = DataIn[8:6];
-        addr2 = DataIn[5:3];
-      end
-    SST:
-      begin
-        addr1 = DataIn[11:9];
-        
-      end
-    VLD:
-      begin
-        addr1 = ;
-        addr2 = ;
-      end
-    VST:
-      begin
-        addr1 = ;
-        addr2 = ;
-      end
-    SLL:
-      begin
-        addr1 = ;
-        addr2 = ;
-      end
-    SLH:
-      begin
-        addr1 = ;
-        addr2 = ;
-      end
-    J:
-      begin
-        addr1 = ;
-        addr2 = ;
-      end
-    default:  NOP 
-      begin
-        addr1 = ;
-        addr2 = ;
-      end
-  endcase
-  end
-end
-*/
-
