@@ -11,10 +11,8 @@ reg [7:0] regTable [255:0];
 assign data_1 = regTable[rd_addr_1];
 assign data_2 = regTable[rd_addr_2];
       
-always      
+always @(*)  
   if (wr_en)
-    regTable[wr_dst] = wr_data;
-  else
-    regTable[wr_dst] = regTable[wr_dst];
+    regTable[wr_dst] <= wr_data;
 
 endmodule
