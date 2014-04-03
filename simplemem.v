@@ -34,7 +34,7 @@ always @(posedge clk2) begin
 end
 
 initial begin
-  $readmemb("mem.list", Memory);
+  $readmemb("mem_init.list", Memory);
 end
 endmodule
 
