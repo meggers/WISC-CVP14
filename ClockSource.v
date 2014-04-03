@@ -1,5 +1,7 @@
 /* Generates and outputs the two phase overlapping clock */
 
+`timescale 1 ns / 1 ns
+
 module clock_source (Clk1, Clk2);
   output reg Clk1, Clk2;
   

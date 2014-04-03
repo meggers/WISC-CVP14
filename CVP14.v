@@ -23,14 +23,20 @@ localparam SLH = 4'b0111;
 localparam NOP = 4'b1111;
 
 /* "Global" Variables */
-reg wr_vector, wr_scalar, vector_en, scalar_en, read, write, flow;
+reg vector_en, scalar_en, read, write, flow;
 reg [1:0] state, nextState;
-reg [2:0] addr1, addr2, addrDst, wrAddr;
-reg [3:0] cycles, count, code, func;
-reg [5:0] offset;
-reg [7:0] immediate;
-reg [15:0] scalarToLoad, scalarData1, scalarData2, scalarWrData, nextInstrAddr, memAddr, data, instrIn;
-reg [255:0] op1, op2, data1, data2, vectorToLoad, vectorData1, vectorData2, vectorWrData, result;
+reg [2:0] wrAddr;
+reg [3:0] cycles, func;
+reg [15:0] scalarToLoad,  scalarWrData, nextInstrAddr, memAddr, data, instrIn;
+reg [255:0] op1, op2, vectorToLoad, vectorWrData;
+
+wire wr_vector, wr_scalar;
+wire [2:0] addr1, addr2, addrDst;
+wire [3:0] count, code;
+wire [5:0] offset;
+wire [7:0] immediate;
+wire [15:0] scalarData1, scalarData2;
+wire [255:0] data1, data2, vectorData1, vectorData2, result;
 
 VectorRegFile vrf(.rd_addr_1(addr1), 
                   .rd_addr_2(addr2), 

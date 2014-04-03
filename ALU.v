@@ -5,13 +5,22 @@ module ALU (op_1, op_2, opcode, result);
   input [255:0] op_1, op_2;
   output reg [255:0] result;
   
-  `include "functions.v"
+  /* Instruction Codes */
+  localparam VADD = 4'b0000;
+  localparam VDOT = 4'b0001;
+  localparam SMUL = 4'b0010;
+  localparam SST = 4'b0011;
+  localparam VLD = 4'b0100;
+  localparam VST = 4'b0101;
+  localparam SLL = 4'b0110;
+  localparam SLH = 4'b0111;
+  localparam NOP = 4'b1111;
   
   always @(*)
     case(opcode)
       VADD:
         begin
-          result <= VADDfunc(op_1, op_2);
+          result = VADDfunc(op_1, op_2);
         end
       VDOT:begin
             //result = VDOTfunc(op_1, op2);
@@ -33,14 +42,9 @@ module ALU (op_1, op_2, opcode, result);
            end
       SLH:begin
             result = ScalarLoadHigh(op_1[15:0], op_2[7:0]);
-           end
-      J:begin
-            //result = Jfunc(op_1, op2);
-           end                                            
+           end                                          
       default:begin /* NOP */
         result = 155'd0;
       end
     endcase
-  end
-
 endmodule
