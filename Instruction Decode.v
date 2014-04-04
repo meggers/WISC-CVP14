@@ -6,7 +6,7 @@ input [15:0] instr;
 output reg v_en, s_en;
 output reg [2:0] addr1, addr2, dstAddr;
 output [3:0] functype;
-output reg [3:0] cycleCount;
+output reg [4:0] cycleCount;
 output reg [5:0] offset;
 output reg [7:0] immediate;
 
@@ -47,15 +47,14 @@ always @(*) begin // Re-evaluate control signals each instruction
         v_en = 1'b1;
         addr1 =  instr[8:6];
         dstAddr = instr[11:9];
-        cycleCount = 4'd15; // Need to delay one more cycle than a store
+        cycleCount = 5'd16; // Need to delay one more cycle than a store
         offset = instr[5:0];
       end
     VST:
       begin
-        v_en = 1'b1;
-        addr1 = instr[8:6];
-        dstAddr = instr[11:9];
-        cycleCount = 4'd15;
+        addr1 = instr[8:6];   // Base register (SRS)
+        addr2 = instr[11:9];  // Contents to store 
+        cycleCount = 4'd15; 
         offset = instr[5:0];
       end
     SLL:

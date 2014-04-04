@@ -21,16 +21,18 @@ localparam SLH = 4'b0111;
 localparam NOP = 4'b1111;
 
 /* "Global" Variables */
-reg vector_en, scalar_en, read, write, flow;
+reg vector_en, scalar_en, read, write, flow, fire;
 reg [2:0] state, nextState;
 reg [2:0] wrAddr;
-reg [3:0] cycles, func;
+reg [3:0] func;
+reg [4:0] cycles;
 reg [15:0] scalarToLoad,  scalarWrData, nextInstrAddr, memAddr, data, instrIn;
 reg [255:0] op1, op2, vectorToLoad, vectorWrData;
 
 wire wr_vector, wr_scalar;
 wire [2:0] addr1, addr2, addrDst;
-wire [3:0] count, code;
+wire [3:0] code;
+wire [4:0] count;
 wire [5:0] offset;
 wire [7:0] immediate;
 wire [15:0] scalarData1, scalarData2;
@@ -96,14 +98,17 @@ assign dataOut = data;
     that latches will be synthesized, which is undesirable */
 always @(posedge Clk1)
   if(Reset) begin
+    fire <= 1'b0;
     state <= Fetch;
     nextInstrAddr <= 16'h0000;
-  end else
+  end else begin
     state <= nextState;
+    fire <= ~fire; // Force re-eval even when you are staying in the same state
+  end
     
 /* Determine what the inputs represent and what the outputs should be based on 
     the current state */ 
-always @(state, DataIn) begin
+always @(fire) begin
   // Set to default values, again for avoiding latches (552 trick)
   nextState = Fetch;
   vector_en = 1'b0;
@@ -150,8 +155,12 @@ always @(state, DataIn) begin
       read = 1'b1;
       
       if(cycles > 0) begin // Else we are still waiting for the first component
-          vectorToLoad[((16*cycles)-1) -: 15] = DataIn;
-      end
+        if(cycles > 1)
+          vectorToLoad = vectorToLoad | (DataIn << 16*(cycles-1));
+        else
+          vectorToLoad = vectorToLoad | DataIn; // First element doesn't need to be shifted
+      end else
+        vectorToLoad = 256'd0;
           
       if(cycles == count)
         nextState = WriteBack;
@@ -163,13 +172,49 @@ always @(state, DataIn) begin
     
     Store: begin // Where things are forced to take multiple clock cycles
       memAddr = result[15:0] + cycles;
-      data = vectorData1[((cycles*16)-1) -: 15];
       write = 1'b1;
+      
+      /* Obvious room for inprovement, I couldn't get 
+        indexing logic to work and it's crunch time */
+      if(cycles == 15)
+        data = vectorData2[255:240];
+      else if(cycles == 14)
+        data = vectorData2[239:224];
+      else if(cycles == 13)
+        data = vectorData2[223:208];
+      else if(cycles == 12)
+        data = vectorData2[207:192];
+      else if(cycles == 11)
+        data = vectorData2[191:176];
+      else if(cycles == 10)
+        data = vectorData2[175:160];
+      else if(cycles == 9)
+        data = vectorData2[159:144];
+      else if(cycles == 8)
+        data = vectorData2[143:128];
+      else if(cycles == 7)
+        data = vectorData2[127:112];
+      else if(cycles == 6)
+        data = vectorData2[111:96];
+      else if(cycles == 5)
+        data = vectorData2[95:80];
+      else if(cycles == 4)
+        data = vectorData2[79:64];
+      else if(cycles == 3)
+        data = vectorData2[63:48];
+      else if(cycles == 2)
+        data = vectorData2[47:32];
+      else if(cycles == 1)
+        data = vectorData2[31:16];
+      else
+        data = vectorData2[15:0];
       
       if(cycles == count)
         nextState = Fetch;
-      else
+      else begin
+        nextState = Store;
         cycles = cycles + 1;
+      end
     end
     
     WriteBack: begin

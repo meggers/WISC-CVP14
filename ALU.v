@@ -35,7 +35,7 @@ module ALU (op_1, op_2, opcode, result);
             result = {240'd0, (op_1[15:0] + op_2[15:0])};
            end
       VST:begin
-            result[15:0] = op_1[15:0] + op_2[15:0];
+            result = {240'd0, (op_1[15:0] + op_2[15:0])};
            end
       SLL:begin
             result = {240'd0, ScalarLoadLow(op_1[15:0], op_2[7:0])};
@@ -44,7 +44,7 @@ module ALU (op_1, op_2, opcode, result);
             result = {240'd0, ScalarLoadHigh(op_1[15:0], op_2[7:0])};
            end                                          
       default:begin /* NOP */
-        result = 155'd0;
+        result = 255'd0;
       end
     endcase
 endmodule
