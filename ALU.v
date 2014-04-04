@@ -47,6 +47,4 @@ module ALU (op_1, op_2, opcode, result);
         result = 255'd0;
       end
     endcase
-  end
-
 endmodule
