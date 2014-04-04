@@ -1,5 +1,4 @@
-module ALU (clk, op_1, op_2, opcode, result);
-  input clk;
+module ALU (op_1, op_2, opcode, result);
   input [3:0] opcode;
   input [255:0] op_1, op_2;
   output reg [255:0] result;
@@ -48,6 +47,4 @@ module ALU (clk, op_1, op_2, opcode, result);
         result = 255'd0;
       end
     endcase
-  end
-
 endmodule
