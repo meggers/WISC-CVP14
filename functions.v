@@ -20,25 +20,29 @@ endfunction
 
 //http://en.wikipedia.org/wiki/Half-precision_floating-point_format
 //http://pages.cs.wisc.edu/~smoler/x86text/lect.notes/arith.flpt.html
+//http://users-tima.imag.fr/cis/guyot/Cours/Oparithm/english/Flottan.htm
 function float_add;
   input [15:0] float_1, float_2;
   
   parameter exponent_bias   = 5'b01111,
-            hidden_bit      = 1'b1;
+            hidden_bit      = 1'b1,
+            guard_bit       = 1'b0,
+            round_bit       = 1'b0;
             
   parameter sign_bit     = 15,
             exponent_msb = 14,
             exponent_lsb = 10, 
             mantissa_msb = 9,
-            mantissa_lsb = 0;
+            mantissa_lsb = 0,
+            ulp_bit      = 2;
             
   reg signed [4:0] exp_1, exp_2, exp_shifted;
   reg signed [5:0] exp_diff;
   
-  reg [10:0] mantissa_1, mantissa_2;
-  reg [11:0] mantissa_sum;
+  reg [12:0] mantissa_1, mantissa_2; // Includes hidden, guard, and round bits
+  reg [13:0] mantissa_sum; // Includes overflow, guard, and round bits
   
-  reg sign;
+  reg sign, ulp;
   reg [3:0] leadingZeros;
   
   begin
@@ -47,48 +51,46 @@ function float_add;
     exp_2 = float_2[exponent_msb : exponent_lsb] - exponent_bias;
     exp_diff = exp_1 - exp_2;
         
-    // Step 1b: Introduce hidden bit and align radix
+    // Step 1b: Construct mantissas
+    mantissa_1 = {hidden_bit, float_1[mantissa_msb : mantissa_lsb], guard_bit, round_bit};
+    mantissa_2 = {hidden_bit, float_2[mantissa_msb : mantissa_lsb], guard_bit, round_bit};    
+        
+    // Step 1c: Introduce hidden bit and align radix
+    // Step 2: Add
     if (exp_diff < 0) begin      
       exp_shifted = exp_2;
-      exp_diff = ~exp_diff + 1; // Convert to positive diff for shifting 
+      exp_diff = ~exp_diff + 1; // Convert to positive diff for shifting      
+      mantissa_1 = mantissa_1 >> exp_diff; 
+      
       sign = float_2[sign_bit];
-      
-      mantissa_1 = {hidden_bit, float_1[mantissa_msb : mantissa_lsb]} >> exp_diff;
-      mantissa_2 = {hidden_bit, float_2[mantissa_msb : mantissa_lsb]};
-      
+      mantissa_sum = (float_1[sign_bit] ~^ float_2[sign_bit]) ? mantissa_1 + mantissa_2 : mantissa_2 - mantissa_1;
     end else begin
       exp_shifted = exp_1;
+      mantissa_2 = mantissa_2 >> exp_diff;
+            
       sign = float_1[sign_bit];
-
-      mantissa_1 = {hidden_bit, float_1[mantissa_msb : mantissa_lsb]};
-      mantissa_2 = {hidden_bit, float_2[mantissa_msb : mantissa_lsb]} >> exp_diff;
-    end
-    
-    // Step 2: Add
-    if (float_1[sign_bit] ~^ float_2[sign_bit]) begin
-      mantissa_sum = mantissa_1 + mantissa_2;
-    end else begin
-      mantissa_sum = float_1[sign_bit] ? mantissa_2 - mantissa_1 : mantissa_1 - mantissa_2;
+      mantissa_sum = (float_1[sign_bit] ~^ float_2[sign_bit]) ? mantissa_1 + mantissa_2 : mantissa_1 - mantissa_2;  
     end
       
     // Step 3: Normalize result
-    if (mantissa_sum != 0) begin
-      if (mantissa_sum[11]) begin
-        mantissa_sum = mantissa_sum >> 1;
-        exp_shifted = exp_shifted + 1;
-      end else if (~mantissa_sum[10]) begin
-        $display("this happened");
-        leadingZeros = numLeadingZeros(mantissa_sum[9:0]);
-        mantissa_sum = mantissa_sum << leadingZeros;
-        exp_shifted = exp_shifted - leadingZeros;
-      end
+    ulp = mantissa_sum[ulp_bit];
+    if (mantissa_sum[11]) begin
+      mantissa_sum = mantissa_sum >> 1;
+      exp_shifted = exp_shifted + 1;
+    end else if (~mantissa_sum[10]) begin
+      leadingZeros = numLeadingZeros(mantissa_sum[9:0]);
+      mantissa_sum = mantissa_sum << leadingZeros;
+      exp_shifted = exp_shifted - leadingZeros;
     end
     
     exp_shifted = exp_shifted + exponent_bias;  
     
+    // Step 4: Round Result
+    mantissa_sum 
+    
     // Reassable and return
     $display("Result: %b", {sign, exp_shifted, mantissa_sum[mantissa_msb : mantissa_lsb]});
-    float_add = {sign, exp_shifted, mantissa_sum[mantissa_msb : mantissa_lsb]};
+    float_add = {sign, exp_shifted, mantissa_sum[mantissa_msb : 2]};
   end
 
 endfunction
