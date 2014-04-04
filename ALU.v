@@ -5,19 +5,19 @@ module ALU (clk, op_1, op_2, opcode, result);
   output reg [255:0] result;
   
   `include "functions.v"
+
+ /* Instruction Codes */
+  localparam VADD = 4'b0000;
+  localparam VDOT = 4'b0001;
+  localparam SMUL = 4'b0010;
+  localparam SST = 4'b0011;
+  localparam VLD = 4'b0100;
+  localparam VST = 4'b0101;
+  localparam SLL = 4'b0110;
+  localparam SLH = 4'b0111;
+  localparam NOP = 4'b1111;
   
-  parameter VADD = 4'b0000,
-            VDOT = 4'b0001,
-            SMUL = 4'b0010,
-            SST  = 4'b0011,
-            VLD  = 4'b0100,
-            VST  = 4'b0101,
-            SLL  = 4'b0110,
-            SLH  = 4'b0111,
-            J    = 4'b1000,
-            NOP  = 4'b1111;
-            
-  always @(posedge clk) begin
+  always @(*)
     case(opcode)
       VADD:
         begin
@@ -33,39 +33,21 @@ module ALU (clk, op_1, op_2, opcode, result);
             //result = SSTfunc(op_1, op2);
            end
       VLD:begin
-            //result = VLDfunc(op_1, op2);
+            result = {240'd0, (op_1[15:0] + op_2[15:0])};
            end
       VST:begin
-            //result = VSTfunc(op_1, op2);
+            result = {240'd0, (op_1[15:0] + op_2[15:0])};
            end
       SLL:begin
-            //result = SLLfunc(op_1, op2);
+            result = {240'd0, ScalarLoadLow(op_1[15:0], op_2[7:0])};
            end
       SLH:begin
-            //result = SLHfunc(op_1, op2);
-           end
-      J:begin
-            //result = Jfunc(op_1, op2);
-           end                                            
-      NOP:begin
-            //result = NOPfunc(op_1, op2);
-           end
+            result = {240'd0, ScalarLoadHigh(op_1[15:0], op_2[7:0])};
+           end                                          
+      default:begin /* NOP */
+        result = 255'd0;
+      end
     endcase
   end
 
-endmodule
-
-module float_add_t();
-  `include "functions.v"
-  
-  reg [15:0] op_2 = 16'b1101011001000000, // -100
-             op_1 = 16'b0011010000000000; // .25
-            
-  reg [15:0] result;
-
-  initial begin
-    result = float_add(op_1, op_2);
-    $stop;
-  end
-  
 endmodule
