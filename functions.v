@@ -71,24 +71,26 @@ function float_add;
       {mantissa_sum, GRS[guard_bit : round_bit]} = 
         (float_1[sign_bit] ~^ float_2[sign_bit]) ? 
         {mantissa_1 + mantissa_2, GRS[guard_bit : round_bit]} : 
-         mantissa_2 - mantissa_1;
+        {mantissa_2, 3'b0} - {mantissa_1, GRS[guard_bit : sticky_msb]};
     end else begin
       exp_shifted = exp_1;
       {mantissa_2, GRS} = mantissa_2 >> exp_diff;
       GRS[sticky_msb] = |GRS[sticky_msb : sticky_lsb];
             
       sign = float_1[sign_bit];
-      {mantissa_sum, GRS[guard_bit : round_bit]} = (float_1[sign_bit] ~^ float_2[sign_bit]) ? mantissa_1 + mantissa_2 : mantissa_1 - mantissa_2;  
+      {mantissa_sum, GRS[guard_bit : round_bit]} = 
+      (float_1[sign_bit] ~^ float_2[sign_bit]) ? 
+      {mantissa_1 + mantissa_2, GRS[guard_bit : round_bit]} : 
+      {mantissa_1, 3'b0} - {mantissa_2, GRS[guard_bit : sticky_msb]};  
     end
       
     // Step 3: Normalize result
     if (mantissa_sum[overflow]) begin
       {mantissa_sum, GRS} = mantissa_sum >> 1;
-      GRS[sticky_msb] = |GRS[sticky_msb : sticky_lsb];
       exp_shifted = exp_shifted + 1;
+      GRS[sticky_msb] = |GRS[sticky_msb : sticky_lsb];
     end else if (~mantissa_sum[hidden]) begin
       leadingZeros = numLeadingZeros(mantissa_sum[9:0]);
-      GRS[sticky_msb] = |GRS[sticky_msb : sticky_lsb];
       {mantissa_sum, GRS[guard_bit : round_bit]} = {mantissa_sum, GRS[guard_bit : sticky_msb]} << leadingZeros;
       exp_shifted = exp_shifted - leadingZeros;
     end
