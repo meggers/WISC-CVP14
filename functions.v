@@ -86,7 +86,7 @@ function float_add;
     exp_shifted = exp_shifted + exponent_bias;  
     
     // Step 4: Round Result
-    mantissa_sum 
+    //mantissa_sum 
     
     // Reassable and return
     $display("Result: %b", {sign, exp_shifted, mantissa_sum[mantissa_msb : mantissa_lsb]});
