@@ -1,8 +1,10 @@
 `timescale 1 ns / 1 ns
+
 module staticram(DataOut, Addr, DataIn, clk1, clk2, RD, WR);
 parameter WordSize=16;
 parameter AddrWidth=16;
 localparam MemSize  = (1 << AddrWidth);
+
 input [AddrWidth-1:0] Addr;
 input [WordSize-1:0]  DataIn;
 output reg [WordSize-1:0]  DataOut;
@@ -32,9 +34,11 @@ always @(posedge clk2) begin
 end
 
 initial begin
-  $readmemb("mem.list", Memory);
+  $readmemb("mem_init.list", Memory);
 end
 endmodule
+
+
 
 module t_staticram;
 parameter WordSize=16;

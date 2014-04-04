@@ -1,0 +1,54 @@
+How to run the test, as detailed as possible, make sure you are on a CAE linux machine:
+
+The very first thing you should do (once you have the project open) is to right click on functions.v in the project pane and select properties. Under General Settings, check Do Not Compile. Now everything should compile with no errors.
+
+To run the test as it currently exists, simply hit run in simulate mode and it should work, but be careful not to let it run forever, otherwise the CVP starts pulling in 16'hXXXX as instructions, which is undefined behaviour.
+
+If you want to change the test or write your own, do the steps below:
+
+1) Open a terminal and cd into the WISC-CVP14 directory
+	The directory should have a test.asm, mem_init.list, and an assemble.pl
+	file in it
+
+	test.asm : the assembly code we want to test
+	mem_init.list : the machine code that will be loaded into the DRAM at 
+			run time (see line 37 of simplemem.v)
+	assemble.pl : a (shitty) assembler that parmesh provided; this makes
+			mem_init.list out of test.asm. Do NOT change this
+
+2) Make any changes to test.asm you want to, I'd avoid comments, half the 
+	time they make it into the machine code and fuck stuff up, not sure 
+	why the ones that are in there currently get ignored (shitty assembler). 
+
+	One thing to note is that immediate values have to be in decimal for 
+	the assembly code (i.e. SLL 1 A won't work, SLL 1 10 will work)
+
+3) Delete the mem_init.list file; don't worry, you'll be re-creating it shortly
+
+4) Run the following command "perl assemble.pl test.asm > mem_init.list"
+	If you didn't delete the mem_init.list file this will throw an error
+
+5) Go back to ModelSim, restart the simulation and hit run, this time it will
+	run your new code, nifty!
+
+6) If you change test.asm, tests.check becomes irrelevant, so you'll get to have
+	as much fun as I did staring at waveforms to make sure stuff worked. 
+
+
+Git tips:
+	The most up-to-date stuff is on master, don't merge or push into master until
+		push to your branch and we've all had a chance to see it
+
+	*********Make sure you are on YOUR BRANCH when you merge in stuff, otherwise you could
+		seriously fuck stuff up.*********
+
+	Your best friend is git status
+	Make sure your branch is clean and pushed before doing any merging
+	Make sure the branch you want to merge is clean and pulled before merging
+
+	If you stick to your branch for pushes and merges, you can't fuck anything up
+		too bad because we will still have working copies.
+
+I'm around all day, so text me with any questions you have, if you could push out 
+	(to your branch) any synthesized code and report stuff before you submit
+	anything that'd also be helpful.
