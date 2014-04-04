@@ -32,10 +32,6 @@ function float_add;
             exponent_lsb = 10, 
             mantissa_msb = 9,
             mantissa_lsb = 0,
-            guard_bit    = 12,
-            round_bit    = 11,
-            sticky_msb   = 10,
-            sticky_lsb   = 0,
             overflow     = 11,
             hidden       = 10;
             
@@ -44,7 +40,6 @@ function float_add;
   
   reg [10:0] mantissa_1, mantissa_2; // Includes hidden bit
   reg [11:0] mantissa_sum; // Includes overflow bit
-  reg [12:0] GRS; // Guard, Round, and Sticky bits
   
   reg sign;
   reg [3:0] leadingZeros;
@@ -64,43 +59,26 @@ function float_add;
     if (exp_diff < 0) begin      
       exp_shifted = exp_2;
       exp_diff = ~exp_diff + 1; // Convert to positive diff for shifting      
-      {mantissa_1, GRS} = mantissa_1 >> exp_diff; 
-      GRS[sticky_msb] = |GRS[sticky_msb : sticky_lsb];
+      mantissa_1 = mantissa_1 >> exp_diff;
       
       sign = float_2[sign_bit];
-      {mantissa_sum, GRS[guard_bit : round_bit]} = 
-        (float_1[sign_bit] ~^ float_2[sign_bit]) ? 
-        {mantissa_1 + mantissa_2, GRS[guard_bit : round_bit]} : 
-        {mantissa_2, 3'b0} - {mantissa_1, GRS[guard_bit : sticky_msb]};
+      mantissa_sum = (float_1[sign_bit] ~^ float_2[sign_bit]) ? mantissa_1 + mantissa_2 : mantissa_2 - mantissa_1;
     end else begin
       exp_shifted = exp_1;
-      {mantissa_2, GRS} = mantissa_2 >> exp_diff;
-      GRS[sticky_msb] = |GRS[sticky_msb : sticky_lsb];
+      mantissa_2 = mantissa_2 >> exp_diff;
             
       sign = float_1[sign_bit];
-      {mantissa_sum, GRS[guard_bit : round_bit]} = 
-      (float_1[sign_bit] ~^ float_2[sign_bit]) ? 
-      {mantissa_1 + mantissa_2, GRS[guard_bit : round_bit]} : 
-      {mantissa_1, 3'b0} - {mantissa_2, GRS[guard_bit : sticky_msb]};  
+      mantissa_sum = (float_1[sign_bit] ~^ float_2[sign_bit]) ? mantissa_1 + mantissa_2 : mantissa_1 - mantissa_2;  
     end
       
     // Step 3: Normalize result
     if (mantissa_sum[overflow]) begin
-      {mantissa_sum, GRS} = mantissa_sum >> 1;
+      mantissa_sum = mantissa_sum >> 1;
       exp_shifted = exp_shifted + 1;
-      GRS[sticky_msb] = |GRS[sticky_msb : sticky_lsb];
     end else if (~mantissa_sum[hidden]) begin
       leadingZeros = numLeadingZeros(mantissa_sum[9:0]);
-      {mantissa_sum, GRS[guard_bit : round_bit]} = {mantissa_sum, GRS[guard_bit : sticky_msb]} << leadingZeros;
+      mantissa_sum = mantissa_sum << leadingZeros;
       exp_shifted = exp_shifted - leadingZeros;
-    end
-    
-    // Step 4: Round result to nearest even
-    if (GRS[guard_bit]) begin
-      if (|GRS[round_bit : sticky_msb] | (~|GRS[round_bit : sticky_msb] & mantissa_sum[mantissa_lsb])) begin
-        mantissa_sum = mantissa_sum + 1;
-        exp_shifted = |mantissa_sum[mantissa_msb : mantissa_lsb] ? exp_shifted : exp_shifted + 1;
-      end
     end
     
     // Reassable and return    
