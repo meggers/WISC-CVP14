@@ -3,7 +3,7 @@
 module the_test();
   reg rst;
 
-  wire Clk1, Clk2, V;
+  wire Clk1, Clk2, V, RD, WR;
   wire [15:0] dataTo, dataFrom, addr; // wrt to DRAM
   
   clock_source clocks(.Clk1(Clk1), .Clk2(Clk2));

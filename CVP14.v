@@ -1,8 +1,6 @@
 module CVP14(output [15:0] Addr, output RD, output WR, output V, output [15:0] dataOut, 
             input Reset, input Clk1, input Clk2, input [15:0] DataIn);
 
-wire [15:0] dataAddr, addr;
-
 /* State Definitions */
 localparam Fetch = 3'd0;
 localparam Decode = 3'd1;
@@ -24,7 +22,7 @@ localparam NOP = 4'b1111;
 
 /* "Global" Variables */
 reg vector_en, scalar_en, read, write, flow;
-reg [1:0] state, nextState;
+reg [2:0] state, nextState;
 reg [2:0] wrAddr;
 reg [3:0] cycles, func;
 reg [15:0] scalarToLoad,  scalarWrData, nextInstrAddr, memAddr, data, instrIn;
@@ -38,7 +36,8 @@ wire [7:0] immediate;
 wire [15:0] scalarData1, scalarData2;
 wire [255:0] data1, data2, vectorData1, vectorData2, result;
 
-VectorRegFile vrf(.rd_addr_1(addr1), 
+VectorRegFile vrf(.rst(Reset),
+                  .rd_addr_1(addr1), 
                   .rd_addr_2(addr2), 
                   .wr_dst(wrAddr),
                   .wr_data(vectorWrData), 
@@ -47,7 +46,8 @@ VectorRegFile vrf(.rd_addr_1(addr1),
                   .data_1(vectorData1), 
                   .data_2(vectorData2));
                   
-ScalarRegFile srf(.rd_addr_1(addr1), 
+ScalarRegFile srf(.rst(Reset),
+                  .rd_addr_1(addr1), 
                   .rd_addr_2(addr2), 
                   .wr_dst(wrAddr),
                   .wr_data(scalarWrData), 
@@ -106,13 +106,11 @@ always @(posedge Clk1)
 always @(state, DataIn) begin
   // Set to default values, again for avoiding latches (552 trick)
   nextState = Fetch;
-  memAddr = 16'h0000;
   vector_en = 1'b0;
   scalar_en = 1'b0;
   read = 1'b0;
   write = 1'b0;
   flow = 1'b0;
-  instrIn = 16'h0000;
   data = 16'h0000;
   
   case(state)
@@ -157,8 +155,10 @@ always @(state, DataIn) begin
           
       if(cycles == count)
         nextState = WriteBack;
-      else
+      else begin
+        nextState = Load;
         cycles = cycles + 1;
+      end
     end
     
     Store: begin // Where things are forced to take multiple clock cycles
@@ -188,8 +188,6 @@ always @(state, DataIn) begin
         wrAddr = addrDst;
         
         scalarWrData = result[15:0];
-      end else /* NOP */ begin
-        // Don't set either enable
       end
       
       nextState = Fetch;

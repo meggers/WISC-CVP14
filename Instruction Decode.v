@@ -23,7 +23,7 @@ localparam NOP = 4'b1111;
 
 assign functype = instr[15:12];
 
-always @(functype) begin // Re-evaluate control signals each instruction
+always @(*) begin // Re-evaluate control signals each instruction
   // Defaults so that flops get inferred
   v_en = 1'b0;
   s_en = 1'b0;
@@ -47,7 +47,7 @@ always @(functype) begin // Re-evaluate control signals each instruction
         v_en = 1'b1;
         addr1 =  instr[8:6];
         dstAddr = instr[11:9];
-        cycleCount = 4'd16; // Need to delay one more cycle than a store
+        cycleCount = 4'd15; // Need to delay one more cycle than a store
         offset = instr[5:0];
       end
     VST:

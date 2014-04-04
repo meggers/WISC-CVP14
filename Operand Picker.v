@@ -20,10 +20,7 @@ module picker(functype, vectorData1, vectorData2, scalarData1,
   localparam SLH = 4'b0111;
   localparam NOP = 4'b1111;
   
-  always @(functype) begin // Re-evaluate control signals each instruction
-  // Defaults so that flops get inferred
-  op1 = 255'd0;
-  op2 = 255'd0;
+  always @(*) begin
 
   case(functype) // Still need to add the rest of the instruction types
     VADD:
@@ -33,8 +30,8 @@ module picker(functype, vectorData1, vectorData2, scalarData1,
       end
     VLD:
       begin
-        op1[15:0] = scalarData1;
-        op2[15:0] = {{10{offset[5]}}, offset}; // Sign extended offset
+        op1 = {240'd0, scalarData1};
+        op2 = {240'd0, {{10{offset[5]}}, offset}}; // Sign extended offset
       end
     VST:
       begin
@@ -43,15 +40,19 @@ module picker(functype, vectorData1, vectorData2, scalarData1,
       end
     SLL:
       begin
-        op1[15:0] = scalarData1;
-        op2[7:0] = immediate;
+        op1 = {240'd0, scalarData1};
+        op2 = {248'd0, immediate};
       end
     SLH:
       begin
-        op1[15:0] = scalarData1;
-        op2[7:0] = immediate;
+        op1 = {240'd0, scalarData1};
+        op2 = {248'd0, immediate};
       end
-    default: begin end /* NOP; leave it all zero */
+    default:
+      begin
+        op1 = 255'd0;
+        op2 = 255'd0;
+      end
   endcase
 end
   
