@@ -121,7 +121,7 @@ always @(fire) begin
   case(state)
     Fetch: begin
       memAddr = nextInstrAddr;
-      nextInstrAddr = nextInstrAddr + 1;
+      if(~Reset) nextInstrAddr = nextInstrAddr + 1;
       read = 1'b1;
       
       nextState = Decode;
@@ -242,5 +242,4 @@ always @(fire) begin
       nextState = Fetch;
   endcase
 end
-
 endmodule

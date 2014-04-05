@@ -16,7 +16,7 @@ module ALU (op_1, op_2, opcode, result);
   localparam SLH = 4'b0111;
   localparam NOP = 4'b1111;
   
-  always @(*) begin
+  always @(*)
     case(opcode)
       VADD:
         begin
