@@ -1,11 +1,11 @@
 ## Analyze the File ##
-analyze -library WORK -format verilog {/filespace/people/g/gduma/WISC-CVP14/VectorRegFile.v}
+analyze -library WORK -format verilog {/filespace/people/g/gduma/WISC-CVP14/functions.v}
 
 ## Elaborate the Module ##
-elaborate VectorRegFile -architecture verilog -library DEFAULT
+elaborate VADDfunc -architecture verilog -library DEFAULT
 
 # Set the current_design #
-current_design VectorRegFile
+current_design VADDfunc
 
 set_units -time ns -resistance kOhm -capacitance pF -voltage V -current mA
 set_operating_conditions NCCOM -library tcbn40lpbwptc
@@ -29,4 +29,4 @@ compile -map_effort high
 report_area > area.txt
 report_timing -path full -delay max -nworst 3 > timing.txt
 report_timing -path full -delay min -nworst 3 >> timing.txt
-write -format verilog VectorRegFile -output VectorRegFile_synth.vg
+write -format verilog VADDfunc -output VADDfunc_synth.vg

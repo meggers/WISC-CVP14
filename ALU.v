@@ -20,7 +20,7 @@ module ALU (op_1, op_2, opcode, result);
     case(opcode)
       VADD:
         begin
-          result <= VADDfunc(op_1, op_2);
+          result = VADDfunc(op_1, op_2);
         end
       VDOT:begin
             //result = VDOTfunc(op_1, op2);
