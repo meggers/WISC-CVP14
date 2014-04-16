@@ -83,6 +83,7 @@ picker ofOps(.functype(code),  /* In */
              .scalarData2(scalarData2),
              .immediate(immediate),
              .offset(offset),
+             .PC(memAddr),
                    
              .op1(data1), /* Out */
              .op2(data2));  
