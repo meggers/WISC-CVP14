@@ -16,7 +16,7 @@ module ALU (op_1, op_2, opcode, result);
   localparam SLH = 4'b0111;
   localparam NOP = 4'b1111;
   
-  always @(*) begin
+  always @(*)
     case(opcode)
       VADD:
         begin
@@ -47,4 +47,18 @@ module ALU (op_1, op_2, opcode, result);
         result = 255'd0;
       end
     endcase
+endmodule
+
+module float_add_t();
+  `include "functions.v"
+  
+  reg [15:0] op_2 = 16'b0000111101110011, // 
+             op_1 = 16'b1000111101110011; // 
+            
+  reg [15:0] result;
+
+  initial begin
+    result = float_add(op_1, op_2);
+    $stop;
+  end
 endmodule
