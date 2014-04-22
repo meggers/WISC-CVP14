@@ -30,7 +30,7 @@ module ALU (op_1, op_2, opcode, result);
             //result = SMULfunc(op_1, op2);
            end
       SST:begin
-            //result = SSTfunc(op_1, op2);
+            result = op_1 + op_2;
            end
       VLD:begin
             result = op_1 + op_2;

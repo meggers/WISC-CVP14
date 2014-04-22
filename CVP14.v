@@ -147,13 +147,14 @@ always @(fire) begin
       // Stimulate the ALU
       op1 = data1;
       op2 = data2;
-      func = code; // result is now relevant until the next fetch state
+      func = code; 
+      // result is now relevant until the next fetch state
       
       if(code == J) begin          
           nextState = Jump;
       end else if(code == VLD)
         nextState = Load;
-      else if(code == VST)
+      else if(code == VST || code == SST)
         nextState = Store;
       else
         nextState = WriteBack;
@@ -223,7 +224,10 @@ always @(fire) begin
       else if(cycles == 1)
         data = vectorData2[31:16];
       else
-        data = vectorData2[15:0];
+        if(code == SST)
+          data = scalarData2;
+        else
+          data = vectorData2[15:0];
       
       if(cycles == count)
         nextState = Fetch;

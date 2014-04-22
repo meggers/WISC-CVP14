@@ -39,6 +39,11 @@ module picker(functype, vectorData1, vectorData2, scalarData1,
         op1 = {240'd0, scalarData1};
         op2 = {240'd0, {{10{offset[5]}}, offset}}; // Sign extended offset
       end
+    SST:
+      begin
+        op1 = {240'd0, scalarData1};
+        op2 = {240'd0, {{10{offset[5]}}, offset}}; // Sign extended offset  
+      end
     SLL:
       begin
         op1 = {240'd0, scalarData1};

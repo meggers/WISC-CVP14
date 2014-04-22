@@ -22,7 +22,9 @@ sll 3 4
 sll 4 5
 sll 5 6
 sll 6 7
-sll 7 8		 
+sll 7 8	
+
+sst 5 5 5	 
 
 vld 0 0 0	// Test loading vectors
 vld 1 1 0

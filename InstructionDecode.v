@@ -31,7 +31,7 @@ always @(*) begin // Re-evaluate control signals each instruction
   addr1 = 3'b000;
   addr2 = 3'b000;
   dstAddr = 3'b000;
-  cycleCount = 4'h1; // Will be 1 or 16, instruction dependant
+  cycleCount = 4'h0; // Will be 0(SST), 15(VST) or 16(VLD), instruction dependant
   offset = 6'd0;
   immediate = 8'h00;
 
@@ -56,6 +56,12 @@ always @(*) begin // Re-evaluate control signals each instruction
         addr1 = instr[8:6];   // Base register (SRS)
         addr2 = instr[11:9];  // Contents to store 
         cycleCount = 4'd15; 
+        offset = instr[5:0];
+      end
+    SST:
+      begin
+        addr1 = instr[8:6];   // Base register (SRS)
+        addr2 = instr[11:9];  // Contents to store
         offset = instr[5:0];
       end
     SLL:
