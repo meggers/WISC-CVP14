@@ -1,6 +1,11 @@
 @0
 j 5
 
+noop
+noop
+noop
+noop
+
 slh 0 1		// Test loading high bytes into each register
 slh 1 2
 slh 2 3
