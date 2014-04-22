@@ -32,6 +32,5 @@ module the_test();
     rst = 1'b1;
     #2;
     rst = 1'b0;
-    $monitor("time=",$time, "Data from the Processor=%b : Data to the Processor=%b", dataFrom, dataTo);
   end
 endmodule

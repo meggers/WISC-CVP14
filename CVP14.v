@@ -96,17 +96,13 @@ assign dataOut = data;
                   
 /* Flop the new state in, using only one always block makes it much more likely
     that latches will be synthesized, which is undesirable */
-    initial begin
-      nextInstrAddr = 16'h0000;
-    end
 always @(posedge Clk1)
   if(Reset) begin
-    fire <= 1'b0;
     state <= Fetch;
-    //nextInstrAddr <= 16'h0000;
+    fire <= 1'b0; 
   end else begin
     state <= nextState;
-    fire <= ~fire; // Force re-eval even when you are staying in the same state
+    fire <= ~fire; // Force re-eval, ***doesn't simulate correctly if the other always block is @(posedge Clk1)***
   end
     
 /* Determine what the inputs represent and what the outputs should be based on 
@@ -118,13 +114,19 @@ always @(fire) begin
   scalar_en = 1'b0;
   read = 1'b0;
   write = 1'b0;
-  flow = 1'b0;
+  flow = 1'b0; // Over/underflow
   data = 16'h0000;
+  
+  if(Reset)
+    nextInstrAddr = 16'h0000; // Make sure that nextInstrAddr has mutually exclusive assignements
   
   case(state)
     Fetch: begin
       memAddr = nextInstrAddr;
-      nextInstrAddr = nextInstrAddr + 1;
+      
+      if(~Reset)
+        nextInstrAddr = nextInstrAddr + 1; // Make sure that nextInstrAddr has mutually exclusive assignements
+        
       read = 1'b1;
       nextState = Decode;
     end
