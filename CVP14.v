@@ -117,15 +117,15 @@ always @(fire) begin
   flow = 1'b0; // Over/underflow
   data = 16'h0000;
   
-  if(Reset)
-    nextInstrAddr = 16'h0000; // Make sure that nextInstrAddr has mutually exclusive assignements
+  if(Reset) // Make sure that nextInstrAddr has mutually exclusive assignements
+    nextInstrAddr = 16'h0000;
   
   case(state)
     Fetch: begin
       memAddr = nextInstrAddr;
       
-      if(~Reset)
-        nextInstrAddr = nextInstrAddr + 1; // Make sure that nextInstrAddr has mutually exclusive assignements
+      if(~Reset) // Make sure that nextInstrAddr has mutually exclusive assignements
+        nextInstrAddr = nextInstrAddr + 1;
         
       read = 1'b1;
       nextState = Decode;
