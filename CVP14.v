@@ -8,6 +8,7 @@ localparam Execute = 3'd2;
 localparam WriteBack = 3'd3;
 localparam Load = 3'd4;
 localparam Store = 3'd5;
+localparam Jump = 3'd6;
 
 /* Instruction Codes */
 localparam VADD = 4'b0000;
@@ -18,6 +19,7 @@ localparam VLD = 4'b0100;
 localparam VST = 4'b0101;
 localparam SLL = 4'b0110;
 localparam SLH = 4'b0111;
+localparam J = 4'b1000;
 localparam NOP = 4'b1111;
 
 /* "Global" Variables */
@@ -147,12 +149,21 @@ always @(fire) begin
       op2 = data2;
       func = code; // result is now relevant until the next fetch state
       
-      if(code == VLD)
+      if(code == J) begin          
+          nextState = Jump;
+      end else if(code == VLD)
         nextState = Load;
       else if(code == VST)
         nextState = Store;
       else
         nextState = WriteBack;
+    end
+    
+    Jump: begin
+      if(~Reset)
+        nextInstrAddr = result[15:0];
+        
+      nextState = Fetch;
     end
     
     Load: begin // Where things are forced to take multiple clock cycles

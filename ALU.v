@@ -33,10 +33,10 @@ module ALU (op_1, op_2, opcode, result);
             //result = SSTfunc(op_1, op2);
            end
       VLD:begin
-            result = op_1 + op_2;//{240'd0, (op_1[15:0] + op_2[15:0])};
+            result = op_1 + op_2;
            end
       VST:begin
-            result = op_1 + op_2;//{240'd0, (op_1[15:0] + op_2[15:0])};
+            result = op_1 + op_2;
            end
       SLL:begin
             result = {240'd0, ScalarLoadLow(op_1[15:0], op_2[7:0])};

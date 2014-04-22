@@ -19,6 +19,7 @@ localparam VLD = 4'b0100;
 localparam VST = 4'b0101;
 localparam SLL = 4'b0110;
 localparam SLH = 4'b0111;
+localparam J = 4'b1000;
 localparam NOP = 4'b1111;
 
 assign functype = instr[15:12];
@@ -69,6 +70,10 @@ always @(*) begin // Re-evaluate control signals each instruction
         s_en = 1'b1;
         addr1 = instr[11:9];
         dstAddr = instr[11:9];
+        immediate = instr[7:0];
+      end
+    J:
+      begin
         immediate = instr[7:0];
       end
     default: begin end /* NOP; leave it all zero */
