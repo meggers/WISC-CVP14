@@ -2,13 +2,16 @@ module CVP14(output [15:0] Addr, output RD, output WR, output V, output [15:0] d
             input Reset, input Clk1, input Clk2, input [15:0] DataIn);
 
 /* State Definitions */
-localparam Fetch = 3'd0;
-localparam Decode = 3'd1;
-localparam Execute = 3'd2;
-localparam WriteBack = 3'd3;
-localparam Load = 3'd4;
-localparam Store = 3'd5;
-localparam Jump = 3'd6;
+localparam Fetch = 4'd0;
+localparam Decode = 4'd1;
+localparam Execute = 4'd2;
+localparam WriteBack = 4'd3;
+localparam Load = 4'd4;
+localparam Store = 4'd5;
+localparam Jump = 4'd6;
+localparam ScalarMultiply = 4'd7;
+localparam VectorAdd = 4'd8;
+localparam VectorDot = 4'd9;
 
 /* Instruction Codes */
 localparam VADD = 4'b0000;
@@ -139,7 +142,27 @@ always @(fire) begin
                            the next fetch state, most notably op1 and op2. */
                    
       cycles = 4'h0; // Reset the counter
-      nextState = Execute;
+      
+      if(code == SMUL)
+        nextState = ScalarMultiply;
+      else if(code == VDOT)
+        nextState = VectorDot;
+      else if(code == VADD)
+        nextState = VectorAdd;
+      else
+        nextState = Execute;
+    end
+  
+    ScalarMultiply: begin
+      
+    end
+    
+    VectorDot: begin
+      
+    end
+    
+    VectorAdd: begin
+      
     end
     
     Execute: begin // Where things happen in one clock cycle    
