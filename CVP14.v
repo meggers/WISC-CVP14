@@ -10,6 +10,7 @@ localparam Load = 4'd4;
 localparam Store = 4'd5;
 localparam Jump = 4'd6;
 localparam ScalarMultiply = 4'd7;
+localparam VectorDot = 4'd8;
 
 /* Instruction Codes */
 localparam VADD = 4'b0000;
@@ -25,7 +26,7 @@ localparam NOP = 4'b1111;
 
 /* "Global" Variables */
 reg vector_en, scalar_en, read, write, flow, fire;
-reg [2:0] state, nextState;
+reg [3:0] state, nextState;
 reg [2:0] wrAddr;
 reg [3:0] func;
 reg [4:0] cycles;
@@ -146,11 +147,13 @@ always @(fire) begin
     
     Execute: begin // State 2
       // Stimulate the ALU
-      op1 = data1;
-      op2 = data2;        
+      op1 = data1[15:0];
+      op2 = data2[15:0];        
       func = code;
     
-      if(code == SMUL) begin
+      if(code == VDOT) begin
+        nextState = VectorDot;
+      end else if(code == SMUL) begin
         nextState = ScalarMultiply;  
       end else if(code == J) begin          
         nextState = Jump;
@@ -158,8 +161,26 @@ always @(fire) begin
         nextState = Load;
       else if(code == VST || code == SST)
         nextState = Store;
-      else begin
+      else begin // Nothing else to do!
         nextState = WriteBack;
+      end
+    end
+    
+    VectorDot: begin
+      // Stimulate the ALU
+      op1 = {240'd0, data1[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
+      op2 = {240'd0, data2[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
+      
+      if(cycles > 0)
+        scalarToLoad = scalarToLoad + 1;//float_add(scalarToLoad, result[15:0]);
+      else
+        scalarToLoad = result[15:0];
+        
+      if(cycles == count)
+        nextState = WriteBack;
+      else begin
+        cycles = cycles + 1;
+        nextState = VectorDot; // Not done yet
       end
     end
     
@@ -177,7 +198,7 @@ always @(fire) begin
         nextState = WriteBack;
       else begin
         cycles = cycles + 1;
-        nextState = ScalarMultiply;
+        nextState = ScalarMultiply; // Not done yet
       end
     end
     
@@ -273,7 +294,10 @@ always @(fire) begin
         scalar_en = 1'b1;
         wrAddr = addrDst;
         
-        scalarWrData = result[15:0];
+        if(code == VDOT)
+          scalarWrData = scalarToLoad;
+        else
+          scalarWrData = result[15:0];
       end
       
       nextState = Fetch;

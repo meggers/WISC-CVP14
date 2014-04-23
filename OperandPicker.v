@@ -37,6 +37,11 @@ module picker(functype, vectorData1, vectorData2, scalarData1,
         op1 = {240'd0, scalarData1};
         op2 = {240'd0, {{10{offset[5]}}, offset}}; // Sign extended offset
       end
+    VDOT:
+      begin
+        op1 = vectorData1;
+        op2 = vectorData2;
+      end
     VST:
       begin
         op1 = {240'd0, scalarData1};

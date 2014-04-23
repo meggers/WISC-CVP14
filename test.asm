@@ -60,6 +60,15 @@ smul 5 5 5
 smul 6 6 6
 smul 7 7 7
 
+vdot 0 0 0	// Test vector dot
+vdot 1 1 1
+vdot 2 2 2
+vdot 3 3 3
+vdot 4 4 4
+vdot 5 5 5
+vdot 6 6 6
+vdot 7 7 7
+
 @101
 #0001_0001_0001_0001
 #0001_0001_0001_0001

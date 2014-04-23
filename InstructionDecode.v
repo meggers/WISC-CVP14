@@ -31,7 +31,7 @@ always @(*) begin // Re-evaluate control signals each instruction
   addr1 = 3'b000;
   addr2 = 3'b000;
   dstAddr = 3'b000;
-  cycleCount = 4'h0; // Will be 0(SST and other 1 calculation operations), 15(VST) or 16(VLD), instruction dependant
+  cycleCount = 4'h0; // Will be 0(SST and other 1 calculation operations), 15(VST) or 16(VLD)
   offset = 6'd0;
   immediate = 8'h00;
 
@@ -43,6 +43,14 @@ always @(*) begin // Re-evaluate control signals each instruction
         addr1 = instr[8:6];
         addr2 = instr[5:3];
         dstAddr = instr[11:9];
+      end
+    VDOT:
+      begin
+        s_en = 1'b1;            // We're writing to a scalar register later
+        dstAddr = instr[11:9];   // Destination register (SRD)
+        addr1 = instr[8:6];      // Operand 1 (VRS)
+        addr2 = instr[5:3];      // Operand 2 (VRT)
+        cycleCount = 4'd15;     // Cycles needed
       end
     VLD:
       begin
