@@ -26,7 +26,7 @@ module ALU (op_1, op_2, opcode, result);
             //result = VDOTfunc(op_1, op2);
            end
       SMUL:begin
-            //result = SMULfunc(op_1, op2);
+            result = 16'hf00d;//SMULfunc(op_1, op2);
            end
       SST:begin
             result = op_1 + op_2;

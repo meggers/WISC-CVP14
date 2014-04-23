@@ -1,3 +1,6 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+/* Determines the operands op1 and op2, which will be used for the duration of the current instruction */
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 module picker(functype, vectorData1, vectorData2, scalarData1,
                scalarData2, immediate, offset, PC, op1, op2);
                
@@ -43,6 +46,11 @@ module picker(functype, vectorData1, vectorData2, scalarData1,
       begin
         op1 = {240'd0, scalarData1};
         op2 = {240'd0, {{10{offset[5]}}, offset}}; // Sign extended offset  
+      end
+    SMUL:
+      begin
+        op1 = vectorData1;                        // Vector to multiply
+        op2 = {240'd0, scalarData2};              // Scalar to multiply by
       end
     SLL:
       begin

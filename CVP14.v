@@ -10,8 +10,6 @@ localparam Load = 4'd4;
 localparam Store = 4'd5;
 localparam Jump = 4'd6;
 localparam ScalarMultiply = 4'd7;
-localparam VectorAdd = 4'd8;
-localparam VectorDot = 4'd9;
 
 /* Instruction Codes */
 localparam VADD = 4'b0000;
@@ -139,48 +137,48 @@ always @(fire) begin
    
     Decode: begin
       instrIn = DataIn; /* Outputs of decode and picker are now relevant until
-                           the next fetch state, most notably op1 and op2. */
+                           the next fetch state, most notably data1 and data2. */
                    
       cycles = 4'h0; // Reset the counter
       
-      if(code == SMUL)
-        nextState = ScalarMultiply;
-      else if(code == VDOT)
-        nextState = VectorDot;
-      else if(code == VADD)
-        nextState = VectorAdd;
-      else
-        nextState = Execute;
-    end
-  
-    ScalarMultiply: begin
-      
+      nextState = Execute;
     end
     
-    VectorDot: begin
-      
-    end
-    
-    VectorAdd: begin
-      
-    end
-    
-    Execute: begin // Where things happen in one clock cycle    
-      
+    Execute: begin // State 2
       // Stimulate the ALU
       op1 = data1;
-      op2 = data2;
-      func = code; 
-      // result is now relevant until the next fetch state
-      
-      if(code == J) begin          
-          nextState = Jump;
+      op2 = data2;        
+      func = code;
+    
+      if(code == SMUL) begin
+        nextState = ScalarMultiply;  
+      end else if(code == J) begin          
+        nextState = Jump;
       end else if(code == VLD)
         nextState = Load;
       else if(code == VST || code == SST)
         nextState = Store;
-      else
+      else begin
         nextState = WriteBack;
+      end
+    end
+    
+    ScalarMultiply: begin
+      // Stimulate the ALU
+      op1 = {240'd0, data1[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15
+      op2 = {240'd0, data2[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15
+      
+      if(cycles > 0)
+        vectorToLoad = vectorToLoad | (result << 16*cycles);
+      else
+        vectorToLoad = {240'd0, result}; // First element doesn't need to be shifted
+        
+      if(cycles == count)
+        nextState = WriteBack;
+      else begin
+        cycles = cycles + 1;
+        nextState = ScalarMultiply;
+      end
     end
     
     Jump: begin
@@ -200,7 +198,7 @@ always @(fire) begin
         else
           vectorToLoad = vectorToLoad | DataIn; // First element doesn't need to be shifted
       end else
-        vectorToLoad = 256'd0;
+        vectorToLoad = 256'd0; // "Initialize" it
           
       if(cycles == count)
         nextState = WriteBack;
@@ -266,7 +264,7 @@ always @(fire) begin
         vector_en = 1'b1;
         wrAddr = addrDst;
         
-        if(code == VLD)
+        if(code == VLD || code == SMUL || code == VDOT || code == VADD)
           vectorWrData = vectorToLoad;
         else
           vectorWrData = result;

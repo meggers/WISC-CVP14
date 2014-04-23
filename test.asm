@@ -51,6 +51,14 @@ vst 5 2 0
 vst 6 1 0
 vst 7 0 0	
 
+smul 0 0 0	// Test scalar multiply
+smul 1 1 1
+smul 2 2 2
+smul 3 3 3
+smul 4 4 4
+smul 5 5 5
+smul 6 6 6
+smul 7 7 7
 
 @101
 #0001_0001_0001_0001
