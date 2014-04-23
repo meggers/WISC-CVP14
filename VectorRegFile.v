@@ -1,20 +1,27 @@
-module VectorRegFile (clk1, clk2, rd_addr_1, rd_addr_2, wr_dst, wr_data, wr_en, data_1, data_2);
+module VectorRegFile (rst, rd_addr_1, rd_addr_2, wr_dst, wr_data, wr_en, data_1, data_2);
 
-input wr_en, clk1, clk2;
+input wr_en, rst;
 input [2:0] rd_addr_1, rd_addr_2, wr_dst;
 input [255:0] wr_data;
 
-output reg [255:0] data_1, data_2;
+output [255:0] data_1, data_2;
 
-reg [7:0] regTable [255:0];
+reg [255:0] regTable [0:7];
 
-always @(posedge clk1, posedge clk2) begin
-  data_1 = regTable[rd_addr_1];
-  data_2 = regTable[rd_addr_2];
-            
-  if (wr_en) begin
+assign data_1 = regTable[rd_addr_1];
+assign data_2 = regTable[rd_addr_2];
+      
+always @(rst, wr_en)
+  if(rst) begin // Clear all registers
+    regTable[7] = 255'd0;
+    regTable[6] = 255'd0;
+    regTable[5] = 255'd0;
+    regTable[4] = 255'd0;
+    regTable[3] = 255'd0;
+    regTable[2] = 255'd0;
+    regTable[1] = 255'd0;
+    regTable[0] = 255'd0;
+  end else if (wr_en)
     regTable[wr_dst] = wr_data;
-  end
-end
 
 endmodule
