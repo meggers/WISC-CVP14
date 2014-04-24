@@ -18,6 +18,25 @@ function [255:0] VADDfunc;
   
 endfunction
 
+function [255:0] SMULfunc;
+  input [255:0] op_1;
+  input [15:0] scalar;
+  
+  parameter maxDimensions = 16,
+            floatWidth = 16;
+  
+  reg [5:0] dimension;
+  reg [15:0] vector;
+  
+  begin
+    for (dimension = 0; dimension < maxDimensions; dimension = dimension + 1) begin
+      vector = op_1[floatWidth * dimension +: floatWidth];
+      
+      SMULfunc[floatWidth * dimension +: floatWidth] = float_mult(vector, scalar);
+    end
+  end
+  
+endfunction
 
 function [15:0] float_mult;
   input [15:0] float_1, float_2;
@@ -32,8 +51,8 @@ function [15:0] float_mult;
             exponent_bias   = 5'b01111,
             hidden_bit      = 1'b1;
   
-  reg signed [4:0] exp_1, exp_2, exp_shifted;
-  reg signed [5:0] exp_sum;
+  reg [4:0] exp_1, exp_2;
+  reg [5:0] exp_sum;
   
   reg [10:0] mantissa_1, mantissa_2; // Includes hidden bit
   reg [21:0] mantissa_prod;
@@ -46,36 +65,36 @@ function [15:0] float_mult;
     //Step 0: check for 0s
     exp_1 = float_1[exponent_msb : exponent_lsb];
     exp_2 = float_2[exponent_msb : exponent_lsb];
-    if(exp_1 != 0 && exp_2 != 0) begin
+    mantissa_1 = {hidden_bit, float_1[mantissa_msb : mantissa_lsb]};
+    mantissa_2 = {hidden_bit, float_2[mantissa_msb : mantissa_lsb]};
+    if((exp_1 != 0 && mantissa_1[9:0] !=0) || (exp_2 != 0 && mantissa_2[9:0])) begin
       //Step 1: xor the sign bits
       signs[1] = float_1[sign_bit];
       signs[0] = float_2[sign_bit];
       sign = ^(signs);
     
       //Step 2: Add the exponents
-      exp_1 = float_1[exponent_msb : exponent_lsb];
-      exp_2 = float_2[exponent_msb : exponent_lsb];
+      exp_1 = exp_1 - exponent_bias;
+      exp_2 = exp_2 - exponent_bias;
       exp_sum = exp_1 + exp_2;
-
-      // Step 3a: Construct mantissas
-      mantissa_1 = {hidden_bit, float_1[mantissa_msb : mantissa_lsb]};
-      mantissa_2 = {hidden_bit, float_2[mantissa_msb : mantissa_lsb]};
       
-      //Step 3b: Multiply the significand
+      //Step 3: Multiply the significand
       mantissa_prod = mantissa_1 * mantissa_2;
       
       // Step 4: Normalize result
-      if (exp_sum[5])//if the addition has overflowed
-        exp_sum[4] = 1;//reset the most significant bit to 1
       if (mantissa_prod[overflow]) begin
         mantissa_prod = mantissa_prod >> 1;
+        exp_sum = exp_sum + 1;
       end
     end else begin
       sign = 0;
-      exp_sum = 0;
+      exp_sum = 6'b010001;
       mantissa_prod = 0;
     end 
     // Step 5: Put it back together
+    exp_sum = exp_sum + exponent_bias;
+    if (exp_sum[5]) //if the addition has overflowed
+        exp_sum[4:0] = 5'b11111;
     float_mult = {sign, exp_sum[4:0], mantissa_prod[19 : 10]};
   end
   
