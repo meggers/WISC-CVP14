@@ -2,15 +2,12 @@ module CVP14(output [15:0] Addr, output RD, output WR, output V, output [15:0] d
             input Reset, input Clk1, input Clk2, input [15:0] DataIn);
 
 /* State Definitions */
-localparam Fetch = 4'd0;
-localparam Decode = 4'd1;
-localparam Execute = 4'd2;
-localparam WriteBack = 4'd3;
-localparam Load = 4'd4;
-localparam Store = 4'd5;
-localparam Jump = 4'd6;
-localparam ScalarMultiply = 4'd7;
-localparam VectorDot = 4'd8;
+localparam Fetch = 3'd0;
+localparam Decode = 3'd1;
+localparam Execute = 3'd2;
+localparam WriteBack = 3'd3;
+localparam Load = 3'd4;
+localparam Store = 3'd5;
 
 /* Instruction Codes */
 localparam VADD = 4'b0000;
@@ -21,12 +18,11 @@ localparam VLD = 4'b0100;
 localparam VST = 4'b0101;
 localparam SLL = 4'b0110;
 localparam SLH = 4'b0111;
-localparam J = 4'b1000;
 localparam NOP = 4'b1111;
 
 /* "Global" Variables */
 reg vector_en, scalar_en, read, write, flow, fire;
-reg [3:0] state, nextState;
+reg [2:0] state, nextState;
 reg [2:0] wrAddr;
 reg [3:0] func;
 reg [4:0] cycles;
@@ -101,13 +97,17 @@ assign dataOut = data;
                   
 /* Flop the new state in, using only one always block makes it much more likely
     that latches will be synthesized, which is undesirable */
+    initial begin
+      nextInstrAddr = 16'h0000;
+    end
 always @(posedge Clk1)
   if(Reset) begin
+    fire <= 1'b0;
     state <= Fetch;
-    fire <= 1'b0; 
+    //nextInstrAddr <= 16'h0000;
   end else begin
     state <= nextState;
-    fire <= ~fire; // Force re-eval, ***doesn't simulate correctly if the other always block is @(posedge Clk1)***
+    fire <= ~fire; // Force re-eval even when you are staying in the same state
   end
     
 /* Determine what the inputs represent and what the outputs should be based on 
@@ -116,98 +116,41 @@ always @(fire) begin
   // Set to default values, again for avoiding latches (552 trick)
   nextState = Fetch;
   vector_en = 1'b0;
-  vectorWrData = 256'd0;
   scalar_en = 1'b0;
   read = 1'b0;
   write = 1'b0;
-  flow = 1'b0; // Over/underflow
+  flow = 1'b0;
   data = 16'h0000;
-  
-  if(Reset) // Make sure that nextInstrAddr has mutually exclusive assignements
-    nextInstrAddr = 16'h0000;
   
   case(state)
     Fetch: begin
       memAddr = nextInstrAddr;
-      
-      if(~Reset) // Make sure that nextInstrAddr has mutually exclusive assignements
-        nextInstrAddr = nextInstrAddr + 1;
-        
+      nextInstrAddr = nextInstrAddr + 1;
       read = 1'b1;
       nextState = Decode;
     end
    
     Decode: begin
       instrIn = DataIn; /* Outputs of decode and picker are now relevant until
-                           the next fetch state, most notably data1 and data2. */
+                           the next fetch state, most notably op1 and op2. */
                    
       cycles = 4'h0; // Reset the counter
-      
       nextState = Execute;
     end
     
-    Execute: begin // State 2
+    Execute: begin // Where things happen in one clock cycle    
+      
       // Stimulate the ALU
-      op1 = data1[15:0];
-      op2 = data2[15:0];        
-      func = code;
-    
-      if(code == VDOT) begin
-        nextState = VectorDot;
-      end else if(code == SMUL) begin
-        nextState = ScalarMultiply;  
-      end else if(code == J) begin          
-        nextState = Jump;
-      end else if(code == VLD)
+      op1 = data1;
+      op2 = data2;
+      func = code; // result is now relevant until the next fetch state
+      
+      if(code == VLD)
         nextState = Load;
-      else if(code == VST || code == SST)
+      else if(code == VST)
         nextState = Store;
-      else begin // Nothing else to do!
-        nextState = WriteBack;
-      end
-    end
-    
-    VectorDot: begin
-      // Stimulate the ALU
-      op1 = {240'd0, data1[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
-      op2 = {240'd0, data2[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
-      
-      if(cycles > 0)
-        scalarToLoad = scalarToLoad + 1;//float_add(scalarToLoad, result[15:0]);
       else
-        scalarToLoad = result[15:0];
-        
-      if(cycles == count)
         nextState = WriteBack;
-      else begin
-        cycles = cycles + 1;
-        nextState = VectorDot; // Not done yet
-      end
-    end
-    
-    ScalarMultiply: begin
-      // Stimulate the ALU
-      op1 = {240'd0, data1[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15
-      op2 = {240'd0, data2[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15
-      
-      if(cycles > 0)
-        vectorToLoad = vectorToLoad | (result << 16*cycles);
-      else
-        vectorToLoad = {240'd0, result}; // First element doesn't need to be shifted
-        
-      if(cycles == count)
-        nextState = WriteBack;
-      else begin
-        cycles = cycles + 1;
-        nextState = ScalarMultiply; // Not done yet
-      end
-    end
-    
-    Jump: begin
-      if(~Reset)
-        nextInstrAddr = result[15:0];
-        
-      nextState = Fetch;
     end
     
     Load: begin // Where things are forced to take multiple clock cycles
@@ -220,7 +163,7 @@ always @(fire) begin
         else
           vectorToLoad = vectorToLoad | DataIn; // First element doesn't need to be shifted
       end else
-        vectorToLoad = 256'd0; // "Initialize" it
+        vectorToLoad = 256'd0;
           
       if(cycles == count)
         nextState = WriteBack;
@@ -267,10 +210,7 @@ always @(fire) begin
       else if(cycles == 1)
         data = vectorData2[31:16];
       else
-        if(code == SST)
-          data = scalarData2;
-        else
-          data = vectorData2[15:0];
+        data = vectorData2[15:0];
       
       if(cycles == count)
         nextState = Fetch;
@@ -286,7 +226,7 @@ always @(fire) begin
         vector_en = 1'b1;
         wrAddr = addrDst;
         
-        if(code == VLD || code == SMUL || code == VDOT || code == VADD)
+        if(code == VLD)
           vectorWrData = vectorToLoad;
         else
           vectorWrData = result;
@@ -295,17 +235,47 @@ always @(fire) begin
         scalar_en = 1'b1;
         wrAddr = addrDst;
         
-        if(code == VDOT)
-          scalarWrData = scalarToLoad;
-        else
-          scalarWrData = result[15:0];
+        scalarWrData = result[15:0];
       end
+<<<<<<< HEAD
+    /*VLD:
+      begin
+        addr1 = ;
+        addr2 = ;
+      end
+    VST:
+      begin
+        addr1 = ;
+        addr2 = ;
+      end
+    SLL:
+      begin
+        addr1 = ;
+        addr2 = ;
+      end
+    SLH:
+      begin
+        addr1 = ;
+        addr2 = ;
+      end
+    J:
+      begin
+        addr1 = ;
+        addr2 = ;
+      end*/
+    default: /* NOP*/  
+      begin
+        addr1 = 0;
+        addr2 = 0;
+      end
+=======
       
       nextState = Fetch;
     end
     
     default:
       nextState = Fetch;
+>>>>>>> synthesis
   endcase
 end
 endmodule

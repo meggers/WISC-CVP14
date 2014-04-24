@@ -18,6 +18,152 @@ function [255:0] VADDfunc;
   
 endfunction
 
+function [255:0] SMULfunc;
+  input [255:0] op_1;
+  input [15:0] scalar;
+  
+  parameter maxDimensions = 16,
+            floatWidth = 16;
+  
+  reg [5:0] dimension;
+  reg [15:0] vector;
+  
+  begin
+    for (dimension = 0; dimension < maxDimensions; dimension = dimension + 1) begin
+      vector = op_1[floatWidth * dimension +: floatWidth];
+      
+      SMULfunc[floatWidth * dimension +: floatWidth] = float_mult(vector, scalar);
+    end
+  end
+  
+endfunction
+
+function [15:0] float_mult;
+  input [15:0] float_1, float_2;
+  
+  parameter sign_bit     = 15,
+            exponent_msb = 14,
+            exponent_lsb = 10, 
+            mantissa_msb = 9,
+            mantissa_lsb = 0,
+            overflow     = 21,
+            hidden       = 20,
+            exponent_bias   = 5'b01111,
+            hidden_bit      = 1'b1;
+  
+  reg [4:0] exp_1, exp_2;
+  reg [5:0] exp_sum;
+  
+  reg [10:0] mantissa_1, mantissa_2; // Includes hidden bit
+  reg [21:0] mantissa_prod;
+  
+  reg sign;
+  reg [3:0] leadingZeros;
+  reg [1:0] signs;
+  
+  begin
+    //Step 0: check for 0s
+    exp_1 = float_1[exponent_msb : exponent_lsb];
+    exp_2 = float_2[exponent_msb : exponent_lsb];
+    mantissa_1 = {hidden_bit, float_1[mantissa_msb : mantissa_lsb]};
+    mantissa_2 = {hidden_bit, float_2[mantissa_msb : mantissa_lsb]};
+    if((exp_1 != 0 && mantissa_1[9:0] !=0) || (exp_2 != 0 && mantissa_2[9:0])) begin
+      //Step 1: xor the sign bits
+      signs[1] = float_1[sign_bit];
+      signs[0] = float_2[sign_bit];
+      sign = ^(signs);
+    
+      mantissa_prod = mantissa_1 * mantissa_2;
+      //Step 2: Add the exponents
+      if (mantissa_prod[overflow]) begin
+        mantissa_prod = mantissa_prod >> 1;
+        if(exp_1>exponent_bias)begin
+          exp_1 = exp_1 - exponent_bias;
+          if(exp_2>exponent_bias)begin
+            exp_2 = exp_2 - exponent_bias;
+            exp_sum = exp_1 + exp_2+1;
+          end else begin
+            exp_sum = exp_1 - exp_2;
+          end
+        end else begin
+          if(exp_2>exponent_bias)begin
+            exp_2 = exp_2 - exponent_bias;
+            exp_sum = exp_2 - exp_1;
+          end else begin
+            exp_sum = 6'b110001;
+          end
+        end
+      end else begin
+        if(exp_1>exponent_bias)begin
+          exp_1 = exp_1 - exponent_bias;
+          if(exp_2>exponent_bias)begin
+            exp_2 = exp_2 - exponent_bias;
+            exp_sum = exp_1 + exp_2;
+          end else begin
+            exp_sum = exp_1 - exp_2;
+          end
+        end else begin
+          if(exp_2>exponent_bias)begin
+            exp_2 = exp_2 - exponent_bias;
+            exp_sum = exp_2 - exp_1;
+          end else begin
+            exp_sum = 6'b110001;
+          end
+        end
+      end
+    end else begin
+      sign = 0;
+      exp_sum = 6'b010001;
+      mantissa_prod = 0;
+    end 
+    // Step 5: Put it back together
+    exp_sum = exp_sum + exponent_bias;
+    if (exp_sum[5]) //if the addition has overflowed
+        exp_sum[4:0] = 5'b11111;
+    float_mult = {sign, exp_sum[4:0], mantissa_prod[19 : 10]};
+  end
+  
+endfunction
+
+
+/*
+function [10:0] MULTfunc;
+  parameter width=10,
+            N = 10/2;
+            
+  input[width-1:0]x, y;
+  
+  reg [2:0] cc[N-1:0];
+  reg [width:0] pp[N-1:0];
+  reg [width+width-1:0] spp[N-1:0];
+  reg [width+width-1:0] prod;
+  reg [width:0] inv_x;
+  integer kk,ii;
+  
+  begin
+    inv_x = {~x[width-1],~x}+1;
+    cc[0] = {y[1],y[0],1'b0};
+    for(kk=1;kk<N;kk=kk+1)
+      cc[kk] = {y[2*kk+1],y[2*kk],y[2*kk-1]};
+    for(kk=0;kk<N;kk=kk+1)begin
+    case(cc[kk])  
+      3'b001 , 3'b010 : pp[kk] = {x[width-1],x};
+      3'b011 : pp[kk] = {x,1'b0};
+      3'b100 : pp[kk] = {inv_x[width-1:0],1'b0};
+      3'b101 , 3'b110 : pp[kk] = inv_x;
+      default : pp[kk] = 0;
+    endcase
+    spp[kk] = $signed(pp[kk]);
+    for(ii=0;ii<kk;ii=ii+1)
+      spp[kk] = {spp[kk],2'b00}; //multiply by 2 to the power x or shifting operation
+  end //for(kk=0;kk<N;kk=kk+1)
+  prod = spp[0];
+  for(kk=1;kk<N;kk=kk+1)
+    prod = prod + spp[kk];
+  MULTfunc = prod;
+  end
+endfunction*/
+
 //http://en.wikipedia.org/wiki/Half-precision_floating-point_format
 //http://pages.cs.wisc.edu/~smoler/x86text/lect.notes/arith.flpt.html
 //http://users-tima.imag.fr/cis/guyot/Cours/Oparithm/english/Flottan.htm
