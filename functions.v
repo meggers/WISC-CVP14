@@ -67,7 +67,7 @@ function [15:0] float_mult;
     exp_2 = float_2[exponent_msb : exponent_lsb];
     mantissa_1 = {hidden_bit, float_1[mantissa_msb : mantissa_lsb]};
     mantissa_2 = {hidden_bit, float_2[mantissa_msb : mantissa_lsb]};
-    if((exp_1 != 0 && mantissa_1[9:0] !=0) || (exp_2 != 0 && mantissa_2[9:0])) begin
+    if(((~|exp_1) && (~|mantissa_1[9:0])) || ((~|exp_2) && (~|mantissa_2[9:0]))) begin
       //Step 1: xor the sign bits
       signs[1] = float_1[sign_bit];
       signs[0] = float_2[sign_bit];
@@ -113,7 +113,7 @@ function [15:0] float_mult;
       end
     end else begin
       sign = 0;
-      exp_sum = 6'b010001;
+      exp_sum = 6'b110001;
       mantissa_prod = 0;
     end 
     // Step 5: Put it back together
@@ -122,7 +122,6 @@ function [15:0] float_mult;
         exp_sum[4:0] = 5'b11111;
     float_mult = {sign, exp_sum[4:0], mantissa_prod[19 : 10]};
   end
-  
 endfunction
 
 

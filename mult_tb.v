@@ -7,8 +7,8 @@ module mult_tb;
     $monitor("time=",$time, "In=%b, %b : Out=%b",A,B, out);
   end
   initial begin
-    #5 A = 16'b0111110000000000;
-       B = 16'b0111110000000001;
+    #5 A = 16'b1010000010010001;
+       B = 16'b111100000100000;
        out = float_mult(A,B);
   end
 endmodule
