@@ -73,18 +73,43 @@ function [15:0] float_mult;
       signs[0] = float_2[sign_bit];
       sign = ^(signs);
     
-      //Step 2: Add the exponents
-      exp_1 = exp_1 - exponent_bias;
-      exp_2 = exp_2 - exponent_bias;
-      exp_sum = exp_1 + exp_2;
-      
-      //Step 3: Multiply the significand
       mantissa_prod = mantissa_1 * mantissa_2;
-      
-      // Step 4: Normalize result
+      //Step 2: Add the exponents
       if (mantissa_prod[overflow]) begin
         mantissa_prod = mantissa_prod >> 1;
-        exp_sum = exp_sum + 1;
+        if(exp_1>exponent_bias)begin
+          exp_1 = exp_1 - exponent_bias;
+          if(exp_2>exponent_bias)begin
+            exp_2 = exp_2 - exponent_bias;
+            exp_sum = exp_1 + exp_2+1;
+          end else begin
+            exp_sum = exp_1 - exp_2;
+          end
+        end else begin
+          if(exp_2>exponent_bias)begin
+            exp_2 = exp_2 - exponent_bias;
+            exp_sum = exp_2 - exp_1;
+          end else begin
+            exp_sum = 6'b110001;
+          end
+        end
+      end else begin
+        if(exp_1>exponent_bias)begin
+          exp_1 = exp_1 - exponent_bias;
+          if(exp_2>exponent_bias)begin
+            exp_2 = exp_2 - exponent_bias;
+            exp_sum = exp_1 + exp_2;
+          end else begin
+            exp_sum = exp_1 - exp_2;
+          end
+        end else begin
+          if(exp_2>exponent_bias)begin
+            exp_2 = exp_2 - exponent_bias;
+            exp_sum = exp_2 - exp_1;
+          end else begin
+            exp_sum = 6'b110001;
+          end
+        end
       end
     end else begin
       sign = 0;
