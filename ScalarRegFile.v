@@ -23,5 +23,7 @@ always @(wr_en, rst)
     regTable[0] = 16'h0000;
   end else if (wr_en)
     regTable[wr_dst] = wr_data;
+  else
+    regTable[wr_dst] = regTable[wr_dst];
 
 endmodule

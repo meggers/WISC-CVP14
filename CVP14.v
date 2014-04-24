@@ -116,6 +116,7 @@ always @(fire) begin
   // Set to default values, again for avoiding latches (552 trick)
   nextState = Fetch;
   vector_en = 1'b0;
+  vectorWrData = 256'd0;
   scalar_en = 1'b0;
   read = 1'b0;
   write = 1'b0;

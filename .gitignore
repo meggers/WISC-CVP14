@@ -1,3 +1,5 @@
+*.svf
+*.log
 *.mpf
 *.bak
 transcript
@@ -6,3 +8,4 @@ work/
 *.nfs*
 *~
 *.wlf
+alib-52/

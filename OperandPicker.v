@@ -7,8 +7,10 @@ module picker(functype, vectorData1, vectorData2, scalarData1,
   input [3:0] functype;
   input [5:0] offset;
   input [7:0] immediate;
-  input [15:0] scalarData1, scalarData2, PC;
+  input [15:0] scalarData1, scalarData2;
   input [255:0] vectorData1, vectorData2;
+  
+  input [15:0] PC;
   
   output reg [255:0] op1, op2;
   
