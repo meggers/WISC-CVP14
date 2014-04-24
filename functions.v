@@ -65,8 +65,6 @@ function float_add;
     // Step 1a: Construct exponents 
     exp_1 = float_1[exponent_msb : exponent_lsb];
     exp_2 = float_2[exponent_msb : exponent_lsb];
-    $display("exp_1: %b", exp_1);
-    $display("exp_2: %b", exp_2);
     
     // Check for infinity
     if (exp_1 == inf_exponent) begin
