@@ -20,13 +20,13 @@ module ALU (op_1, op_2, opcode, result);
   always @(*)
     case(opcode)
       VADD:begin
-            result = VADDfunc(op_1, op_2);
+            result = float_add(op_1, op_2);
            end
       VDOT:begin
-            result = 16'hcafe;//VDOTfunc(op_1, op2);
+            result = float_mult(op_1, op_2);
            end
       SMUL:begin
-            result = 16'hf00d;//SMULfunc(op_1, op2);
+            result = float_mult(op_1, op_2);
            end
       SST:begin
             result = op_1 + op_2;
@@ -50,18 +50,4 @@ module ALU (op_1, op_2, opcode, result);
         result = 255'd0;
       end
     endcase
-endmodule
-
-module float_add_t();
-  `include "functions.v"
-  
-  reg [15:0] op_2 = 16'b0100100100011110, // 
-             op_1 = 16'b1100110111100011; // 
-            
-  reg [15:0] result;
-
-  initial begin
-    result = float_add(op_1, op_2);
-    $stop;
-  end
 endmodule

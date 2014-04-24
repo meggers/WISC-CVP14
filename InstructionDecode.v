@@ -38,7 +38,7 @@ always @(*) begin // Re-evaluate control signals each instruction
   case(functype) // Still need to add the rest of the instruction types
     VADD:
       begin
-        cycleCount = 5'd16;     // Cycles needed
+        cycleCount = 5'd15;     // Cycles needed
         v_en = 1'b1;
         addr1 = instr[8:6];
         addr2 = instr[5:3];

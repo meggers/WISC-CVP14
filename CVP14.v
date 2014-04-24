@@ -1,5 +1,7 @@
 module CVP14(output [15:0] Addr, output RD, output WR, output V, output [15:0] dataOut, 
             input Reset, input Clk1, input Clk2, input [15:0] DataIn);
+            
+`include "functions.v"
 
 /* State Definitions */
 localparam Fetch = 4'd0;
@@ -11,6 +13,7 @@ localparam Store = 4'd5;
 localparam Jump = 4'd6;
 localparam ScalarMultiply = 4'd7;
 localparam VectorDot = 4'd8;
+localparam VectorAdd = 4'd9;
 
 /* Instruction Codes */
 localparam VADD = 4'b0000;
@@ -25,7 +28,9 @@ localparam J = 4'b1000;
 localparam NOP = 4'b1111;
 
 /* "Global" Variables */
-reg vector_en, scalar_en, read, write, flow, fire;
+localparam INFINITY = 16'h7C00;
+
+reg vector_en, scalar_en, read, write, flow, overflow, fire;
 reg [3:0] state, nextState;
 reg [2:0] wrAddr;
 reg [3:0] func;
@@ -113,25 +118,28 @@ always @(posedge Clk1)
 /* Determine what the inputs represent and what the outputs should be based on 
     the current state */ 
 always @(fire) begin
-  // Set to default values, again for avoiding latches (552 trick)
+  // Set to default values, again for avoiding latches (HA...)
   nextState = Fetch;
   vector_en = 1'b0;
   vectorWrData = 256'd0;
   scalar_en = 1'b0;
   read = 1'b0;
   write = 1'b0;
-  flow = 1'b0; // Over/underflow
   data = 16'h0000;
   
-  if(Reset) // Make sure that nextInstrAddr has mutually exclusive assignements
+  if(Reset) begin// Make sure that nextInstrAddr has mutually exclusive assignements
     nextInstrAddr = 16'h0000;
+    flow = 1'b0;
+  end
   
   case(state)
     Fetch: begin
       memAddr = nextInstrAddr;
       
-      if(~Reset) // Make sure that nextInstrAddr has mutually exclusive assignements
+      if(~Reset) begin // Make sure that nextInstrAddr has mutually exclusive assignements
         nextInstrAddr = nextInstrAddr + 1;
+        flow = overflow;
+      end
         
       read = 1'b1;
       nextState = Decode;
@@ -149,10 +157,13 @@ always @(fire) begin
     Execute: begin // State 2
       // Stimulate the ALU
       op1 = data1[15:0];
-      op2 = data2[15:0];        
+      op2 = data2[15:0];  
+      overflow = 1'b0; // Reset for the executing instruction      
       func = code;
     
-      if(code == VDOT) begin
+      if(code == VADD) begin
+        nextState = VectorAdd;      
+      end else if(code == VDOT) begin
         nextState = VectorDot;
       end else if(code == SMUL) begin
         nextState = ScalarMultiply;  
@@ -167,13 +178,41 @@ always @(fire) begin
       end
     end
     
+    VectorAdd: begin
+      // Stimulate the ALU
+      op1 = {240'd0, data1[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
+      op2 = {240'd0, data2[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
+      
+      if(result == INFINITY)
+        overflow = 1'b1;
+      else
+        overflow = overflow;
+      
+      if(cycles > 0)
+        vectorToLoad = vectorToLoad | (result << 16*cycles);
+      else
+        vectorToLoad = result[15:0];
+        
+      if(cycles == count)
+        nextState = WriteBack;
+      else begin
+        cycles = cycles + 1;
+        nextState = VectorAdd; // Not done yet
+      end
+    end
+    
     VectorDot: begin
       // Stimulate the ALU
       op1 = {240'd0, data1[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
       op2 = {240'd0, data2[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
       
+      if(result == INFINITY)
+        overflow = 1'b1;
+      else
+        overflow = overflow;
+      
       if(cycles > 0)
-        scalarToLoad = scalarToLoad + 1;//float_add(scalarToLoad, result[15:0]);
+        scalarToLoad = float_add(scalarToLoad, result[15:0]);
       else
         scalarToLoad = result[15:0];
         
@@ -188,12 +227,17 @@ always @(fire) begin
     ScalarMultiply: begin
       // Stimulate the ALU
       op1 = {240'd0, data1[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15
-      op2 = {240'd0, data2[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15
+      op2 = {240'd0, data2[15:0]};
       
       if(cycles > 0)
         vectorToLoad = vectorToLoad | (result << 16*cycles);
       else
         vectorToLoad = {240'd0, result}; // First element doesn't need to be shifted
+        
+      if(result == INFINITY)
+        overflow = 1'b1;
+      else
+        overflow = overflow;
         
       if(cycles == count)
         nextState = WriteBack;
