@@ -214,11 +214,12 @@ function float_add;
     
     // Check for infinity
     if (exp_1 == inf_exponent) begin
-      float_add = float_1;
+      overflow = 1;
+      sign = float_1[sign_bit];
     end else if (exp_2 == inf_exponent) begin
-      float_add = float_2;
-    end else begin  
-      
+      overflow = 1;
+      sign = float_2[sign_bit];
+    end else begin
       // Step 1b: Subtract exponents
       exp_diff = exp_1 - exp_2;
         
@@ -243,7 +244,7 @@ function float_add;
       end
       
       // Step 3: Normalize result
-      if (~|mantissa_sum[overflow_bit : sum_lsb]) begin
+      if (~|mantissa_sum[overflow_bit : sum_lsb]) begin // If its zero
         exp_shifted = 0;
         mantissa_sum = mantissa_sum;
       end else if (mantissa_sum[overflow_bit]) begin // If there is overflow of mantissa, shift left
@@ -276,17 +277,34 @@ function float_add;
           end
         end
       end
-    
-      // Assemble and return
-      if (~overflow) begin
-        $display("Result: %b", {sign, exp_shifted, mantissa_sum[sum_msb : sum_lsb]});
-        float_add = {sign, exp_shifted, mantissa_sum[sum_msb : sum_lsb]};
+      
+      // Step 3: Normalize result
+      if (~|mantissa_sum[overflow_bit : sum_lsb]) begin // If its zero
+        exp_shifted = 0;
+        mantissa_sum = mantissa_sum;
+      end else if (mantissa_sum[overflow_bit]) begin // If there is overflow of mantissa, shift left
+        mantissa_sum = mantissa_sum >> 1;
+        exp_shifted  = exp_shifted + 1;
+        if (&exp_shifted) begin // Overflow of exponent
+          overflow = 1;
+        end else begin
+          overflow = overflow;
+        end
+      end else if (~mantissa_sum[hidden_bit]) begin // Else if hidden bit is 0
+        leadingZeros = numLeadingZeros(mantissa_sum[sum_msb : sum_lsb]);
+        mantissa_sum[hidden_bit : round_bit] = mantissa_sum[hidden_bit : round_bit] << leadingZeros;
+        exp_shifted  = exp_shifted - leadingZeros;
       end else begin
-        $display("Result: %b", {sign, inf_exponent, inf_mantissa});
-        float_add = {sign, inf_exponent, inf_mantissa};
+        mantissa_sum = mantissa_sum;
+        exp_shifted  = exp_shifted;
+        overflow = overflow;
       end
       
     end
+    
+    // Assemble and Return
+    $display("Result: %b", overflow ? {sign, inf_exponent, inf_mantissa} : {sign, exp_shifted, mantissa_sum[mantissa_msb : mantissa_lsb]});
+    float_add = overflow ? {sign, inf_exponent, inf_mantissa} : {sign, exp_shifted, mantissa_sum[mantissa_msb : mantissa_lsb]};
     
   end
 
