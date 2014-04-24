@@ -24,107 +24,146 @@ endfunction
 function float_add;
   input [15:0] float_1, float_2;
   
-  parameter hidden_bit   = 1'b1;
+  // Special Case Params
+  parameter inf_exponent =  5'b11111,
+            inf_mantissa = 10'b0;
+  
+  // Hidden bit Params
+  parameter hidden_bit_high = 1'b1,
+            hidden_bit_low  = 1'b0;
+            
+  // Floating point Params
   parameter sign_bit     = 15,
             exponent_msb = 14,
             exponent_lsb = 10, 
             mantissa_msb = 9,
-            mantissa_lsb = 0,
-            overflow     = 11,
-            hidden       = 10,
-            guard_bit    = 13,
-            round_bit    = 12,
-            sticky_msb   = 11,
-	    sticky_lsb   = 0;
+            mantissa_lsb = 0;
             
-  reg signed [4:0] exp_1, exp_2, exp_shifted;
-  reg signed [5:0] exp_diff;
+  // Rounding Params
+  parameter GRS_zero_fill = 15'b0,
+            overflow_bit  = 26,
+            hidden_bit    = 25,
+            sum_msb       = 24,
+            sum_lsb       = 15,
+            guard_bit     = 14,
+            round_bit     = 13,
+            sticky_msb    = 12,
+	          sticky_lsb    = 0;
+            
+  reg [4:0] exp_1, exp_2, exp_shifted, exp_diff;
   
-  reg [10:0] mantissa_1, mantissa_2; // Includes hidden bit
-  reg [11:0] mantissa_sum;           // Includes hidden, overflow bits
-  
-  reg [13:0]  GRS; // Guard bit, Round bit, Sticky bits 
-  
-  reg sign;
+  reg [25:0] mantissa_1, mantissa_2; // [1 Hidden bit, 10 Mantissa bits, 1 Guard bit, 1 Round bit, 13 Sticky bits]
+  reg [26:0] mantissa_sum;           // [1 Overflow bit, 1 Hidden Bit, 10 Mantissa bits, 1 Guard bit, 1 Round bit, 13 Sticky bits]
+
+  reg sign, overflow;
   reg [3:0] leadingZeros;
   
   begin
-    // Step 1a: Construct and subtract exponents 
+    // Set our overflow flag
+    overflow = 0;
+    
+    // Step 1a: Construct exponents 
     exp_1 = float_1[exponent_msb : exponent_lsb];
     exp_2 = float_2[exponent_msb : exponent_lsb];
-    exp_diff = exp_1 - exp_2;
-        
-    // Step 1b: Construct mantissas
-    mantissa_1 = {hidden_bit, float_1[mantissa_msb : mantissa_lsb]};
-    mantissa_2 = {hidden_bit, float_2[mantissa_msb : mantissa_lsb]};    
-        
-    // Step 1c: Align radix
-    // Step 2: Add
-    if (exp_diff < 0) begin      
-      exp_shifted = exp_2;
-      exp_diff = ~exp_diff + 1; // Convert to positive diff for shifting
-      {mantissa_1, GRS} = mantissa_1 >> exp_diff;
-      
-      sign = float_2[sign_bit];
-      mantissa_sum = (float_1[sign_bit] ~^ float_2[sign_bit]) ? mantissa_1 + mantissa_2 : mantissa_2 - mantissa_1;
-    end else begin
-      exp_shifted = exp_1;
-      {mantissa_2, GRS} = mantissa_2 >> exp_diff;
-            
-      sign = float_1[sign_bit];
-      mantissa_sum = (float_1[sign_bit] ~^ float_2[sign_bit]) ? mantissa_1 + mantissa_2 : mantissa_1 - mantissa_2;  
-    end
-      
-    // Step 3: Normalize result
-    leadingZeros = numLeadingZeros(mantissa_sum[mantissa_msb:mantissa_lsb]);
-    if (mantissa_sum[overflow]) begin              // If there is overflow, shift left
-      {mantissa_sum, GRS} = mantissa_sum >> 1;
-      exp_shifted  = exp_shifted + 1;
-    end else if (~mantissa_sum[hidden]) begin      // Else if hidden bit is 0
-      {mantissa_sum, GRS[guard_bit:round_bit]} = {mantissa_sum, GRS} << leadingZeros;
-      exp_shifted  = exp_shifted - leadingZeros;
-    end else begin                                 // Otherwise already normalized
-      GRS = GRS;
-      mantissa_sum = mantissa_sum;
-      exp_shifted  = exp_shifted;
-    end
+    $display("exp_1: %b", exp_1);
+    $display("exp_2: %b", exp_2);
     
-    // Step 4: Round to nearest even
-    if (GRS[guard_bit] & (|GRS[sticky_msb:sticky_lsb] | GRS[round_bit] | mantissa_sum[mantissa_lsb])) begin
-      mantissa_sum = mantissa_sum + 1;
-      exp_shifted  = |mantissa_sum[mantissa_msb : mantissa_lsb] ? exp_shifted : exp_shifted + 1; // Overflow of Mantissa
-      if (~|exp_shifted) begin // Overflow of exponent
-
+    // Check for infinity
+    if (exp_1 == inf_exponent) begin
+      float_add = float_1;
+    end else if (exp_2 == inf_exponent) begin
+      float_add = float_2;
+    end else begin  
+      
+      // Step 1b: Subtract exponents
+      exp_diff = exp_1 - exp_2;
+        
+      // Step 1c: Construct mantissas (for both normalized and denormalized numbers)
+      mantissa_1 = {(|exp_1 ? hidden_bit_high : hidden_bit_low), float_1[mantissa_msb : mantissa_lsb], GRS_zero_fill};
+      mantissa_2 = {(|exp_2 ? hidden_bit_high : hidden_bit_low), float_2[mantissa_msb : mantissa_lsb], GRS_zero_fill};   
+        
+      // Step 1d: Align radix
+      // Step 2: Add
+      if (exp_2 > exp_1) begin      
+        exp_shifted = exp_2;
+        mantissa_1 = mantissa_1 >> exp_diff;
+      
+        sign = float_2[sign_bit];
+        mantissa_sum = (float_1[sign_bit] ~^ float_2[sign_bit]) ? mantissa_1 + mantissa_2 : mantissa_2 - mantissa_1;
       end else begin
-
+        exp_shifted = exp_1;
+        mantissa_2 = mantissa_2 >> exp_diff;
+            
+        sign = float_1[sign_bit];
+        mantissa_sum = (float_1[sign_bit] ~^ float_2[sign_bit]) ? mantissa_1 + mantissa_2 : mantissa_1 - mantissa_2;  
       end
-    end else begin
-      mantissa_sum = mantissa_sum;
-      exp_shifted  = exp_shifted;
+      
+      // Step 3: Normalize result
+      if (~|mantissa_sum[overflow_bit : sum_lsb]) begin
+        exp_shifted = 0;
+        mantissa_sum = mantissa_sum;
+      end else if (mantissa_sum[overflow_bit]) begin // If there is overflow of mantissa, shift left
+        mantissa_sum = mantissa_sum >> 1;
+        exp_shifted  = exp_shifted + 1;
+        if (&exp_shifted) begin // Overflow of exponent
+          overflow = 1;
+        end else begin
+          overflow = overflow;
+        end
+      end else if (~mantissa_sum[hidden_bit]) begin // Else if hidden bit is 0
+        leadingZeros = numLeadingZeros(mantissa_sum[sum_msb : sum_lsb]);
+        mantissa_sum[hidden_bit : round_bit] = mantissa_sum[hidden_bit : round_bit] << leadingZeros;
+        exp_shifted  = exp_shifted - leadingZeros;
+      end else begin
+        mantissa_sum = mantissa_sum;
+        exp_shifted  = exp_shifted;
+        overflow = overflow;
+      end
+    
+      // Step 4: Round to nearest even
+      if (~overflow) begin
+        if (mantissa_sum[guard_bit] & (|mantissa_sum[round_bit : sticky_lsb] | mantissa_sum[sum_lsb])) begin
+          mantissa_sum = mantissa_sum + 1;
+          exp_shifted  = |mantissa_sum[sum_msb : sum_lsb] ? exp_shifted : exp_shifted + 1; // Overflow of Mantissa
+          if (&exp_shifted) begin // Overflow of exponent
+            overflow = 1;
+          end else begin
+            overflow = overflow;
+          end
+        end
+      end
+    
+      // Assemble and return
+      if (~overflow) begin
+        $display("Result: %b", {sign, exp_shifted, mantissa_sum[sum_msb : sum_lsb]});
+        float_add = {sign, exp_shifted, mantissa_sum[sum_msb : sum_lsb]};
+      end else begin
+        $display("Result: %b", {sign, inf_exponent, inf_mantissa});
+        float_add = {sign, inf_exponent, inf_mantissa};
+      end
+      
     end
     
-    // Assemble and return
-    $display("Result: %b", {sign, exp_shifted, mantissa_sum[mantissa_msb : mantissa_lsb]});
-    float_add = {sign, exp_shifted, mantissa_sum[mantissa_msb : mantissa_lsb]};
   end
 
 endfunction
 
 function [3:0] numLeadingZeros;
-  input [9:0] mantissa;
+  input [10:0] mantissa;
             
   casex(mantissa)
-    10'b1xxxxxxxxx: numLeadingZeros = 4'd0;
-    10'b01xxxxxxxx: numLeadingZeros = 4'd1;
-    10'b001xxxxxxx: numLeadingZeros = 4'd2;
-    10'b0001xxxxxx: numLeadingZeros = 4'd3;
-    10'b00001xxxxx: numLeadingZeros = 4'd4;
-    10'b000001xxxx: numLeadingZeros = 4'd5;
-    10'b0000001xxx: numLeadingZeros = 4'd6;
-    10'b00000001xx: numLeadingZeros = 4'd7;
-    10'b000000001x: numLeadingZeros = 4'd8;
-    10'b0000000001: numLeadingZeros = 4'd9;
-    default:        numLeadingZeros = 4'd0;
+    11'b1xxxxxxxxxx: numLeadingZeros = 4'd0;
+    11'b01xxxxxxxxx: numLeadingZeros = 4'd1;
+    11'b001xxxxxxxx: numLeadingZeros = 4'd2;
+    11'b0001xxxxxxx: numLeadingZeros = 4'd3;
+    11'b00001xxxxxx: numLeadingZeros = 4'd4;
+    11'b000001xxxxx: numLeadingZeros = 4'd5;
+    11'b0000001xxxx: numLeadingZeros = 4'd6;
+    11'b00000001xxx: numLeadingZeros = 4'd7;
+    11'b000000001xx: numLeadingZeros = 4'd8;
+    11'b0000000001x: numLeadingZeros = 4'd9;
+    11'b00000000001: numLeadingZeros = 4'd10;
+    default:         numLeadingZeros = 4'd0;
   endcase
                     
 endfunction
