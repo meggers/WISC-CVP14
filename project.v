@@ -1,3 +1,4 @@
+`timescale 1 ns / 1 ps
 module PROJECT_TB;
 parameter CLK = 16;
 localparam CLK_FOUR = CLK/4;
@@ -51,7 +52,7 @@ initial begin
 //DUMP/CHECK THE MEMORY
 //The checkpoint conditions is very simple: access to memory address 0xFFFF
 // We're also going to set a time limit to 100K clock cycles.
-	#(CLOCK_FOUR*4*100000);
+	#(CLK_FOUR*4*100000);
 	$display("Time limit reach, we'll dump what we got.");
 	dump = 1'b1;
 	#5;
