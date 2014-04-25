@@ -101,8 +101,10 @@ function [15:0] float_add;
   reg [3:0] leadingZeros;
   
   begin
-    // Set our overflow flag
+    // Initialize values
     overflow = 0;
+    exp_shifted = 0;
+    mantissa_sum = 0;
     
     // Step 1a: Construct exponents 
     exp_1 = float_1[exponent_msb : exponent_lsb];
