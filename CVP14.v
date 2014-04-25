@@ -123,6 +123,7 @@ always @(fire) begin
   nextState = Fetch;
   vector_en = 1'b0;
   vectorWrData = 256'd0;
+  scalarWrData = 16'd0;
   scalar_en = 1'b0;
   read = 1'b0;
   write = 1'b0;
@@ -131,6 +132,7 @@ always @(fire) begin
   if(Reset) begin// Make sure that nextInstrAddr has mutually exclusive assignements
     nextInstrAddr = 16'h0000;
     flow = 1'b0;
+    overflow = 1'b0;
   end
   
   case(state)
@@ -184,9 +186,15 @@ always @(fire) begin
       op1 = {240'd0, data1[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
       op2 = {240'd0, data2[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
       
-      if(result == INFINITY)
+      if(result == INFINITY) begin // Recognize overflow!
         overflow = 1'b1;
-      else
+        scalar_en = 1'b1;
+        wrAddr = 3'd7;
+        scalarWrData = memAddr;
+        
+        if(~Reset)
+          nextInstrAddr = 16'hfff0; // From the spec
+      end else
         overflow = overflow;
       
       if(cycles > 0)
@@ -207,9 +215,15 @@ always @(fire) begin
       op1 = {240'd0, data1[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
       op2 = {240'd0, data2[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
       
-      if(result == INFINITY)
+      if(result == INFINITY) begin // Recognize overflow!
         overflow = 1'b1;
-      else
+        scalar_en = 1'b1;
+        wrAddr = 3'd7;
+        scalarWrData = memAddr;
+        
+        if(~Reset)
+          nextInstrAddr = 16'hfff0; // From the spec
+      end else
         overflow = overflow;
       
       if(cycles > 0)
@@ -235,9 +249,15 @@ always @(fire) begin
       else
         vectorToLoad = {240'd0, result}; // First element doesn't need to be shifted
         
-      if(result == INFINITY)
+      if(result == INFINITY) begin // Recognize overflow!
         overflow = 1'b1;
-      else
+        scalar_en = 1'b1;
+        wrAddr = 3'd7;
+        scalarWrData = memAddr;
+        
+        if(~Reset)
+          nextInstrAddr = 16'hfff0; // From the spec
+      end else
         overflow = overflow;
         
       if(cycles == count)
