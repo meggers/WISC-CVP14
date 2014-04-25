@@ -132,6 +132,7 @@ always @(fire) begin
   if(Reset) begin// Make sure that nextInstrAddr has mutually exclusive assignements
     nextInstrAddr = 16'h0000;
     flow = 1'b0;
+    overflow = 1'b0;
   end
   
   case(state)
