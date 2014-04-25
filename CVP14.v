@@ -44,6 +44,7 @@ wire [3:0] code;
 wire [4:0] count;
 wire [5:0] offset;
 wire [7:0] immediate;
+wire [11:0] jumpOffset;
 wire [15:0] scalarData1, scalarData2;
 wire [255:0] data1, data2, vectorData1, vectorData2, result;
 
@@ -83,6 +84,7 @@ decode instr(.instr(instrIn), /* In */
               .immediate(immediate), 
               .offset(offset),
               .cycleCount(count),
+              .jumpOffset(jumpOffset),
               .functype(code));
                    
 picker ofOps(.functype(code),  /* In */
@@ -92,6 +94,7 @@ picker ofOps(.functype(code),  /* In */
              .scalarData2(scalarData2),
              .immediate(immediate),
              .offset(offset),
+             .jumpOffset(jumpOffset),
              .PC(memAddr),
                    
              .op1(data1), /* Out */

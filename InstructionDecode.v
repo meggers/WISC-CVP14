@@ -1,5 +1,5 @@
 module decode(instr, cycleCount, functype, v_en,  s_en,
-               offset, dstAddr, addr1, addr2, immediate);
+               offset, dstAddr, addr1, addr2, immediate, jumpOffset);
 
 input [15:0] instr;
 
@@ -9,6 +9,7 @@ output [3:0] functype;
 output reg [4:0] cycleCount;
 output reg [5:0] offset;
 output reg [7:0] immediate;
+output reg [11:0] jumpOffset;
 
 /* Instruction Codes */
 localparam VADD = 4'b0000;
@@ -34,6 +35,7 @@ always @(*) begin // Re-evaluate control signals each instruction
   cycleCount = 4'h0; // Will be 0(SST and other 1 calculation operations), 15(VST) or 16(VLD)
   offset = 6'd0;
   immediate = 8'h00;
+  jumpOffset = 12'h000;
 
   case(functype) // Still need to add the rest of the instruction types
     VADD:
@@ -97,7 +99,7 @@ always @(*) begin // Re-evaluate control signals each instruction
       end
     J:
       begin
-        immediate = instr[7:0];
+        jumpOffset = instr[11:0];
       end
     default: begin end /* NOP; leave it all zero */
   endcase

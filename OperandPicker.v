@@ -2,11 +2,12 @@
 /* Determines the operands op1 and op2, which will be used for the duration of the current instruction */
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 module picker(functype, vectorData1, vectorData2, scalarData1,
-               scalarData2, immediate, offset, PC, op1, op2);
+               scalarData2, immediate, offset, jumpOffset, PC, op1, op2);
                
   input [3:0] functype;
   input [5:0] offset;
   input [7:0] immediate;
+  input [11:0] jumpOffset;
   input [15:0] scalarData1, scalarData2;
   input [255:0] vectorData1, vectorData2;
   
@@ -72,7 +73,7 @@ module picker(functype, vectorData1, vectorData2, scalarData1,
     J:
       begin
         op1 = {240'd0, PC};
-        op2 = {240'd0, {{8{immediate[7]}}, immediate}};
+        op2 = {240'd0, {{4{jumpOffset[11]}}, jumpOffset}};
       end
     default:
       begin
