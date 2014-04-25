@@ -1,23 +1,3 @@
-function [255:0] VADDfunc;
-  input [255:0] op_1, op_2;
-  
-  parameter maxDimensions = 16,
-            floatWidth = 16;
-  
-  reg [5:0] dimension;
-  reg [15:0] vector_1, vector_2;
-  
-  begin
-    for (dimension = 0; dimension < maxDimensions; dimension = dimension + 1) begin
-      vector_1 = op_1[floatWidth * dimension +: floatWidth];
-      vector_2 = op_2[floatWidth * dimension +: floatWidth];
-      
-      VADDfunc[floatWidth * dimension +: floatWidth] = float_add(vector_1, vector_2);
-    end
-  end
-  
-endfunction
-
 function [255:0] SMULfunc;
   input [255:0] op_1;
   input [15:0] scalar;
@@ -167,7 +147,7 @@ endfunction*/
 //http://en.wikipedia.org/wiki/Half-precision_floating-point_format
 //http://pages.cs.wisc.edu/~smoler/x86text/lect.notes/arith.flpt.html
 //http://users-tima.imag.fr/cis/guyot/Cours/Oparithm/english/Flottan.htm
-function float_add;
+function [15:0] float_add;
   input [15:0] float_1, float_2;
   
   // Special Case Params
@@ -303,9 +283,7 @@ function float_add;
     end
     
     // Assemble and Return
-    $display("Result: %b", overflow ? {sign, inf_exponent, inf_mantissa} : {sign, exp_shifted, mantissa_sum[mantissa_msb : mantissa_lsb]});
-    float_add = overflow ? {sign, inf_exponent, inf_mantissa} : {sign, exp_shifted, mantissa_sum[mantissa_msb : mantissa_lsb]};
-    
+    float_add = overflow ? {sign, inf_exponent, inf_mantissa} : {sign, exp_shifted, mantissa_sum[sum_msb : sum_lsb]};
   end
 
 endfunction
