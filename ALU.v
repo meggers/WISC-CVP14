@@ -1,5 +1,4 @@
-module ALU (clk, op_1, op_2, opcode, result);
-  input clk;
+module ALU (op_1, op_2, opcode, result);
   input [3:0] opcode;
   input [255:0] op_1, op_2;
   output reg [255:0] result;
@@ -48,6 +47,18 @@ module ALU (clk, op_1, op_2, opcode, result);
         result = 255'd0;
       end
     endcase
-  end
+endmodule
 
+module float_add_t();
+  `include "functions.v"
+  
+  reg [15:0] op_2 = 16'b0000111101110011, // 
+             op_1 = 16'b1000111101110011; // 
+            
+  reg [15:0] result;
+
+  initial begin
+    result = float_add(op_1, op_2);
+    $stop;
+  end
 endmodule
