@@ -2,12 +2,16 @@ module CVP14(output [15:0] Addr, output RD, output WR, output V, output [15:0] d
             input Reset, input Clk1, input Clk2, input [15:0] DataIn);
 
 /* State Definitions */
-localparam Fetch = 3'd0;
-localparam Decode = 3'd1;
-localparam Execute = 3'd2;
-localparam WriteBack = 3'd3;
-localparam Load = 3'd4;
-localparam Store = 3'd5;
+localparam Fetch = 4'd0;
+localparam Decode = 4'd1;
+localparam Execute = 4'd2;
+localparam WriteBack = 4'd3;
+localparam Load = 4'd4;
+localparam Store = 4'd5;
+localparam Jump = 4'd6;
+localparam ScalarMultiply = 4'd7;
+localparam VectorDot = 4'd8;
+localparam VectorAdd = 4'd9;
 
 /* Instruction Codes */
 localparam VADD = 4'b0000;
@@ -18,11 +22,14 @@ localparam VLD = 4'b0100;
 localparam VST = 4'b0101;
 localparam SLL = 4'b0110;
 localparam SLH = 4'b0111;
+localparam J = 4'b1000;
 localparam NOP = 4'b1111;
 
 /* "Global" Variables */
-reg vector_en, scalar_en, read, write, flow, fire;
-reg [2:0] state, nextState;
+localparam INFINITY = 16'h7C00;
+
+reg vector_en, scalar_en, read, write, flow, overflow, fire;
+reg [3:0] state, nextState;
 reg [2:0] wrAddr;
 reg [3:0] func;
 reg [4:0] cycles;
@@ -35,6 +42,7 @@ wire [3:0] code;
 wire [4:0] count;
 wire [5:0] offset;
 wire [7:0] immediate;
+wire [11:0] jumpOffset;
 wire [15:0] scalarData1, scalarData2;
 wire [255:0] data1, data2, vectorData1, vectorData2, result;
 
@@ -74,6 +82,7 @@ decode instr(.instr(instrIn), /* In */
               .immediate(immediate), 
               .offset(offset),
               .cycleCount(count),
+              .jumpOffset(jumpOffset),
               .functype(code));
                    
 picker ofOps(.functype(code),  /* In */
@@ -83,6 +92,8 @@ picker ofOps(.functype(code),  /* In */
              .scalarData2(scalarData2),
              .immediate(immediate),
              .offset(offset),
+             .jumpOffset(jumpOffset),
+             .PC(memAddr),
                    
              .op1(data1), /* Out */
              .op2(data2));  
@@ -98,56 +109,150 @@ assign dataOut = data;
     that latches will be synthesized, which is undesirable */
 always @(posedge Clk1)
   if(Reset) begin
-    fire <= 1'b0;
     state <= Fetch;
-    nextInstrAddr <= 16'h0000;
+    fire <= 1'b0; 
   end else begin
     state <= nextState;
-    fire <= ~fire; // Force re-eval even when you are staying in the same state
+    fire <= ~fire; // Force re-eval, ***doesn't simulate correctly if the other always block is @(posedge Clk1)***
   end
     
 /* Determine what the inputs represent and what the outputs should be based on 
     the current state */ 
 always @(fire) begin
-  // Set to default values, again for avoiding latches (552 trick)
+  // Set to default values, again for avoiding latches (HA...)
   nextState = Fetch;
   vector_en = 1'b0;
+  vectorWrData = 256'd0;
   scalar_en = 1'b0;
   read = 1'b0;
   write = 1'b0;
-  flow = 1'b0;
   data = 16'h0000;
+  
+  if(Reset) begin// Make sure that nextInstrAddr has mutually exclusive assignements
+    nextInstrAddr = 16'h0000;
+    flow = 1'b0;
+  end
   
   case(state)
     Fetch: begin
       memAddr = nextInstrAddr;
-      nextInstrAddr = nextInstrAddr + 1;
-      read = 1'b1;
       
+      if(~Reset) begin // Make sure that nextInstrAddr has mutually exclusive assignements
+        nextInstrAddr = nextInstrAddr + 1;
+        flow = overflow;
+      end
+        
+      read = 1'b1;
       nextState = Decode;
     end
    
     Decode: begin
       instrIn = DataIn; /* Outputs of decode and picker are now relevant until
-                           the next fetch state, most notably op1 and op2. */
+                           the next fetch state, most notably data1 and data2. */
                    
       cycles = 4'h0; // Reset the counter
+      
       nextState = Execute;
     end
     
-    Execute: begin // Where things happen in one clock cycle    
-      
+    Execute: begin // State 2
       // Stimulate the ALU
-      op1 = data1;
-      op2 = data2;
-      func = code; // result is now relevant until the next fetch state
-      
-      if(code == VLD)
+      op1 = data1[15:0];
+      op2 = data2[15:0];  
+      overflow = 1'b0; // Reset for the executing instruction      
+      func = code;
+    
+      if(code == VADD) begin
+        nextState = VectorAdd;      
+      end else if(code == VDOT) begin
+        nextState = VectorDot;
+      end else if(code == SMUL) begin
+        nextState = ScalarMultiply;  
+      end else if(code == J) begin          
+        nextState = Jump;
+      end else if(code == VLD)
         nextState = Load;
-      else if(code == VST)
+      else if(code == VST || code == SST)
         nextState = Store;
-      else
+      else begin // Nothing else to do!
         nextState = WriteBack;
+      end
+    end
+    
+    VectorAdd: begin
+      // Stimulate the ALU
+      op1 = {240'd0, data1[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
+      op2 = {240'd0, data2[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
+      
+      if(result == INFINITY)
+        overflow = 1'b1;
+      else
+        overflow = overflow;
+      
+      if(cycles > 0)
+        vectorToLoad = vectorToLoad | (result << 16*cycles);
+      else
+        vectorToLoad = result[15:0];
+        
+      if(cycles == count)
+        nextState = WriteBack;
+      else begin
+        cycles = cycles + 1;
+        nextState = VectorAdd; // Not done yet
+      end
+    end
+    
+    VectorDot: begin
+      // Stimulate the ALU
+      op1 = {240'd0, data1[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
+      op2 = {240'd0, data2[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15;
+      
+      if(result == INFINITY)
+        overflow = 1'b1;
+      else
+        overflow = overflow;
+      
+      if(cycles > 0)
+        scalarToLoad = float_add(scalarToLoad, result[15:0]);
+      else
+        scalarToLoad = result[15:0];
+        
+      if(cycles == count)
+        nextState = WriteBack;
+      else begin
+        cycles = cycles + 1;
+        nextState = VectorDot; // Not done yet
+      end
+    end
+    
+    ScalarMultiply: begin
+      // Stimulate the ALU
+      op1 = {240'd0, data1[((cycles+1)*16)+15 -: 16]}; // I couldn't tell you why this is -: 16, but it doesn't work with -: 15
+      op2 = {240'd0, data2[15:0]};
+      
+      if(cycles > 0)
+        vectorToLoad = vectorToLoad | (result << 16*cycles);
+      else
+        vectorToLoad = {240'd0, result}; // First element doesn't need to be shifted
+        
+      if(result == INFINITY)
+        overflow = 1'b1;
+      else
+        overflow = overflow;
+        
+      if(cycles == count)
+        nextState = WriteBack;
+      else begin
+        cycles = cycles + 1;
+        nextState = ScalarMultiply; // Not done yet
+      end
+    end
+    
+    Jump: begin
+      if(~Reset)
+        nextInstrAddr = result[15:0];
+        
+      nextState = Fetch;
     end
     
     Load: begin // Where things are forced to take multiple clock cycles
@@ -160,7 +265,7 @@ always @(fire) begin
         else
           vectorToLoad = vectorToLoad | DataIn; // First element doesn't need to be shifted
       end else
-        vectorToLoad = 256'd0;
+        vectorToLoad = 256'd0; // "Initialize" it
           
       if(cycles == count)
         nextState = WriteBack;
@@ -207,7 +312,10 @@ always @(fire) begin
       else if(cycles == 1)
         data = vectorData2[31:16];
       else
-        data = vectorData2[15:0];
+        if(code == SST)
+          data = scalarData2;
+        else
+          data = vectorData2[15:0];
       
       if(cycles == count)
         nextState = Fetch;
@@ -223,7 +331,7 @@ always @(fire) begin
         vector_en = 1'b1;
         wrAddr = addrDst;
         
-        if(code == VLD)
+        if(code == VLD || code == SMUL || code == VDOT || code == VADD)
           vectorWrData = vectorToLoad;
         else
           vectorWrData = result;
@@ -232,7 +340,10 @@ always @(fire) begin
         scalar_en = 1'b1;
         wrAddr = addrDst;
         
-        scalarWrData = result[15:0];
+        if(code == VDOT)
+          scalarWrData = scalarToLoad;
+        else
+          scalarWrData = result[15:0];
       end
       
       nextState = Fetch;
@@ -242,5 +353,167 @@ always @(fire) begin
       nextState = Fetch;
   endcase
 end
+
+//http://en.wikipedia.org/wiki/Half-precision_floating-point_format
+//http://pages.cs.wisc.edu/~smoler/x86text/lect.notes/arith.flpt.html
+//http://users-tima.imag.fr/cis/guyot/Cours/Oparithm/english/Flottan.htm
+function [15:0] float_add;
+  input [15:0] float_1, float_2;
+  
+  // Special Case Params
+  parameter inf_exponent =  5'b11111,
+            inf_mantissa = 10'b0;
+  
+  // Hidden bit Params
+  parameter hidden_bit_high = 1'b1,
+            hidden_bit_low  = 1'b0;
+            
+  // Floating point Params
+  parameter sign_bit     = 15,
+            exponent_msb = 14,
+            exponent_lsb = 10, 
+            mantissa_msb = 9,
+            mantissa_lsb = 0;
+            
+  // Rounding Params
+  parameter GRS_zero_fill = 15'b0,
+            overflow_bit  = 26,
+            hidden_bit    = 25,
+            sum_msb       = 24,
+            sum_lsb       = 15,
+            guard_bit     = 14,
+            round_bit     = 13,
+            sticky_msb    = 12,
+	          sticky_lsb    = 0;
+            
+  reg [4:0] exp_1, exp_2, exp_shifted, exp_diff;
+  
+  reg [25:0] mantissa_1, mantissa_2; // [1 Hidden bit, 10 Mantissa bits, 1 Guard bit, 1 Round bit, 13 Sticky bits]
+  reg [26:0] mantissa_sum;           // [1 Overflow bit, 1 Hidden Bit, 10 Mantissa bits, 1 Guard bit, 1 Round bit, 13 Sticky bits]
+
+  reg sign, overflow;
+  reg [3:0] leadingZeros;
+  
+  begin
+    // Set our overflow flag
+    overflow = 0;
+    
+    // Step 1a: Construct exponents 
+    exp_1 = float_1[exponent_msb : exponent_lsb];
+    exp_2 = float_2[exponent_msb : exponent_lsb];
+    
+    // Check for infinity
+    if (exp_1 == inf_exponent) begin
+      overflow = 1;
+      sign = float_1[sign_bit];
+    end else if (exp_2 == inf_exponent) begin
+      overflow = 1;
+      sign = float_2[sign_bit];
+    end else begin
+      // Step 1b: Subtract exponents
+      exp_diff = exp_1 - exp_2;
+        
+      // Step 1c: Construct mantissas (for both normalized and denormalized numbers)
+      mantissa_1 = {(|exp_1 ? hidden_bit_high : hidden_bit_low), float_1[mantissa_msb : mantissa_lsb], GRS_zero_fill};
+      mantissa_2 = {(|exp_2 ? hidden_bit_high : hidden_bit_low), float_2[mantissa_msb : mantissa_lsb], GRS_zero_fill};   
+        
+      // Step 1d: Align radix
+      // Step 2: Add
+      if (exp_2 > exp_1) begin      
+        exp_shifted = exp_2;
+        mantissa_1 = mantissa_1 >> exp_diff;
+      
+        sign = float_2[sign_bit];
+        mantissa_sum = (float_1[sign_bit] ~^ float_2[sign_bit]) ? mantissa_1 + mantissa_2 : mantissa_2 - mantissa_1;
+      end else begin
+        exp_shifted = exp_1;
+        mantissa_2 = mantissa_2 >> exp_diff;
+            
+        sign = float_1[sign_bit];
+        mantissa_sum = (float_1[sign_bit] ~^ float_2[sign_bit]) ? mantissa_1 + mantissa_2 : mantissa_1 - mantissa_2;  
+      end
+      
+      // Step 3: Normalize result
+      if (~|mantissa_sum[overflow_bit : sum_lsb]) begin // If its zero
+        exp_shifted = 0;
+        mantissa_sum = mantissa_sum;
+      end else if (mantissa_sum[overflow_bit]) begin // If there is overflow of mantissa, shift left
+        mantissa_sum = mantissa_sum >> 1;
+        exp_shifted  = exp_shifted + 1;
+        if (&exp_shifted) begin // Overflow of exponent
+          overflow = 1;
+        end else begin
+          overflow = overflow;
+        end
+      end else if (~mantissa_sum[hidden_bit]) begin // Else if hidden bit is 0
+        leadingZeros = numLeadingZeros(mantissa_sum[sum_msb : sum_lsb]);
+        mantissa_sum[hidden_bit : round_bit] = mantissa_sum[hidden_bit : round_bit] << leadingZeros;
+        exp_shifted  = exp_shifted - leadingZeros;
+      end else begin
+        mantissa_sum = mantissa_sum;
+        exp_shifted  = exp_shifted;
+        overflow = overflow;
+      end
+    
+      // Step 4: Round to nearest even
+      if (~overflow) begin
+        if (mantissa_sum[guard_bit] & (|mantissa_sum[round_bit : sticky_lsb] | mantissa_sum[sum_lsb])) begin
+          mantissa_sum = mantissa_sum + 1;
+          exp_shifted  = |mantissa_sum[sum_msb : sum_lsb] ? exp_shifted : exp_shifted + 1; // Overflow of Mantissa
+          if (&exp_shifted) begin // Overflow of exponent
+            overflow = 1;
+          end else begin
+            overflow = overflow;
+          end
+        end
+      end
+      
+      // Step 3: Normalize result
+      if (~|mantissa_sum[overflow_bit : sum_lsb]) begin // If its zero
+        exp_shifted = 0;
+        mantissa_sum = mantissa_sum;
+      end else if (mantissa_sum[overflow_bit]) begin // If there is overflow of mantissa, shift left
+        mantissa_sum = mantissa_sum >> 1;
+        exp_shifted  = exp_shifted + 1;
+        if (&exp_shifted) begin // Overflow of exponent
+          overflow = 1;
+        end else begin
+          overflow = overflow;
+        end
+      end else if (~mantissa_sum[hidden_bit]) begin // Else if hidden bit is 0
+        leadingZeros = numLeadingZeros(mantissa_sum[sum_msb : sum_lsb]);
+        mantissa_sum[hidden_bit : round_bit] = mantissa_sum[hidden_bit : round_bit] << leadingZeros;
+        exp_shifted  = exp_shifted - leadingZeros;
+      end else begin
+        mantissa_sum = mantissa_sum;
+        exp_shifted  = exp_shifted;
+        overflow = overflow;
+      end
+    end
+    
+    // Assemble and Return
+    float_add = overflow ? {sign, inf_exponent, inf_mantissa} : {sign, exp_shifted, mantissa_sum[sum_msb : sum_lsb]};
+  end
+endfunction
+
+function [3:0] numLeadingZeros;
+  input [10:0] mantissa;
+            
+  casex(mantissa)
+    11'b1xxxxxxxxxx: numLeadingZeros = 4'd0;
+    11'b01xxxxxxxxx: numLeadingZeros = 4'd1;
+    11'b001xxxxxxxx: numLeadingZeros = 4'd2;
+    11'b0001xxxxxxx: numLeadingZeros = 4'd3;
+    11'b00001xxxxxx: numLeadingZeros = 4'd4;
+    11'b000001xxxxx: numLeadingZeros = 4'd5;
+    11'b0000001xxxx: numLeadingZeros = 4'd6;
+    11'b00000001xxx: numLeadingZeros = 4'd7;
+    11'b000000001xx: numLeadingZeros = 4'd8;
+    11'b0000000001x: numLeadingZeros = 4'd9;
+    11'b00000000001: numLeadingZeros = 4'd10;
+    default:  numLeadingZeros = 4'd0;
+  endcase
+                    
+endfunction
 
 endmodule

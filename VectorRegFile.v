@@ -22,6 +22,6 @@ always @(rst, wr_en)
     regTable[1] = 255'd0;
     regTable[0] = 255'd0;
   end else if (wr_en)
-    regTable[wr_dst] <= wr_data;
+    regTable[wr_dst] = wr_data;
 
 endmodule

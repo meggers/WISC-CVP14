@@ -1,11 +1,26 @@
 These aren't the times where this will specifically happen, but at these times, these should be the contents of the registers/memory
 
-@130 ns: Scalar Reg File should be: 0100 0200 0300 0400 0500 0600 0700 0800 
+@130 ns: Scalar Reg File should be: 0100 0200 0300 0400 0500 0600 0700 0800 (SLH)
 
-@260 ns: Scalar Reg File should be: 0101 0202 0303 0404 0505 0606 0707 0808
+@260 ns: Scalar Reg File should be: 0101 0202 0303 0404 0505 0606 0707 0808 (SLL)
 
-@950 ns: Vector Reg File: Each register should be filled with its number on repeat (R1: 1111, R2: 2222, etc.)
+@950 ns: Vector Reg File: Each register should be filled with its number on repeat (R1: 1111, R2: 2222, etc.) (VLD)
 
-@1800 ns: DRAM should be inverted, that is what was @101 to start is now @808, @202 <--> @707, etc.
+@1800 ns: DRAM should be inverted, that is what was @101 to start is now @808, @202 <--> @707, etc. (VST)
 
-Vadd has been all Max, so talk to him about how those tests should work, the flow control should definitely be working for it, as everything else is. Alternately, you could add the assembly code to test it and see for yourself, but if you have questions about FP ask Max.
+
+QUICK CHECK (Not specific to any one thing) @5000 ns
+
+SRF: 0101 0202 0303 0404 0505 0606 0707 0808 cbodcbodcbodcbdobcdobcd....
+VRF: 1111 1111 1111 1111 1111 1111 1111 1111
+     2222 2222 2222 2222 2222 2222 2222 2222
+     3333 3333 3333 3333 3333 3333 3333 3333
+     4444 4444 4444 4444 4444 4444 4444 4444
+     5555 5555 5555 5555 5555 5555 5555 5555
+     6666 6666 6666 6666 6666 6666 6666 6666
+     7777 7777 7777 7777 7777 7777 7777 7777
+     8888 8888 8888 8888 8888 8888 8888 8888 food food food foodfoodfdofododfodf.d....
+
+Memory: You should see 0100 0800 (all 8's)
+		       0200 0700 (all 7's)
+			etc.

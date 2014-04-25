@@ -1,0 +1,45 @@
+ 
+****************************************
+Report : area
+Design : CVP14
+Version: H-2013.03-SP3
+Date   : Fri Apr  4 23:08:27 2014
+****************************************
+
+Information: Updating design information... (UID-85)
+Information: Timing loop detected. (OPT-150)
+	cycles_reg[3]/E cycles_reg[3]/Q U12553/I0 U12553/ZN U12541/A1 U12541/ZN U12539/A2 U12539/Z 
+Information: Timing loop detected. (OPT-150)
+	U12553/I1 U12553/ZN U12541/A1 U12541/ZN U12539/A2 U12539/Z cycles_reg[2]/E cycles_reg[2]/Q U12554/I U12554/ZN 
+Warning: Disabling timing arc between pins 'E' and 'Q' on cell 'cycles_reg[3]'
+         to break a timing loop. (OPT-314)
+Warning: Disabling timing arc between pins 'E' and 'Q' on cell 'cycles_reg[2]'
+         to break a timing loop. (OPT-314)
+Warning: Disabling timing arc between pins 'E' and 'Q' on cell 'cycles_reg[1]'
+         to break a timing loop. (OPT-314)
+Warning: Disabling timing arc between pins 'E' and 'Q' on cell 'cycles_reg[4]'
+         to break a timing loop. (OPT-314)
+Warning: Disabling timing arc between pins 'E' and 'Q' on cell 'cycles_reg[0]'
+         to break a timing loop. (OPT-314)
+Library(s) Used:
+
+    tcbn40lpbwptc (File: /cae/apps/data/synopsys-2011/TSMCHOME/digital/Front_End/timing_power_noise/NLDM/tcbn40lpbwp_120b/tcbn40lpbwptc.db)
+
+Number of ports:                           54
+Number of nets:                         10375
+Number of cells:                         9958
+Number of combinational cells:           6599
+Number of sequential cells:              3310
+Number of macros/black boxes:               0
+Number of buf/inv:                       1446
+Number of references:                     105
+
+Combinational area:              10296.644516
+Buf/Inv area:                     1278.900042
+Noncombinational area:            8766.374101
+Macro/Black Box area:                0.000000
+Net Interconnect area:      undefined  (Wire load has zero net area)
+
+Total cell area:                 19063.018617
+Total area:                 undefined
+1

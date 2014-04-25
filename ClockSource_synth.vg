@@ -1,0 +1,9 @@
+
+module clock_source ( Clk1, Clk2 );
+  output Clk1, Clk2;
+
+
+  TIELBWP U3 ( .ZN(Clk1) );
+  TIELBWP U4 ( .ZN(Clk2) );
+endmodule
+
