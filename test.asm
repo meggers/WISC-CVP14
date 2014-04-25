@@ -42,15 +42,6 @@ vld 5 5 0
 vld 6 6 0
 vld 7 7 0	
 
-vst 0 7 0	// Test storing vectors
-vst 1 6 0
-vst 2 5 0
-vst 3 4 0
-vst 4 3 0
-vst 5 2 0
-vst 6 1 0
-vst 7 0 0	
-
 smul 0 0 0	// Test scalar multiply
 smul 1 1 1
 smul 2 2 2
@@ -59,6 +50,15 @@ smul 4 4 4
 smul 5 5 5
 smul 6 6 6
 smul 7 7 7
+
+vst 0 7 0	// Test storing vectors
+vst 1 6 0
+vst 2 5 0
+vst 3 4 0
+vst 4 3 0
+vst 5 2 0
+vst 6 1 0
+vst 7 0 0	
 
 vdot 0 0 0	// Test vector dot
 vdot 1 1 1

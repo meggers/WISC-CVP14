@@ -113,7 +113,7 @@ function [15:0] float_mult;
       end
     end else begin
       sign = 0;
-      exp_sum = 6'b010001;
+      exp_sum = 6'b110001;
       mantissa_prod = 0;
     end 
     // Step 5: Put it back together
@@ -167,7 +167,7 @@ endfunction*/
 //http://en.wikipedia.org/wiki/Half-precision_floating-point_format
 //http://pages.cs.wisc.edu/~smoler/x86text/lect.notes/arith.flpt.html
 //http://users-tima.imag.fr/cis/guyot/Cours/Oparithm/english/Flottan.htm
-function float_add;
+function [15:0] float_add;
   input [15:0] float_1, float_2;
   
   // Special Case Params
