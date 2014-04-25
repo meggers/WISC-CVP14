@@ -1,7 +1,5 @@
 module CVP14(output [15:0] Addr, output RD, output WR, output V, output [15:0] dataOut, 
             input Reset, input Clk1, input Clk2, input [15:0] DataIn);
-            
-`include "functions.v"
 
 /* State Definitions */
 localparam Fetch = 4'd0;
