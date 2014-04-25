@@ -14,7 +14,6 @@ module ALU (op_1, op_2, opcode, result);
   localparam VST = 4'b0101;
   localparam SLL = 4'b0110;
   localparam SLH = 4'b0111;
-  localparam J = 4'b1000;
   localparam NOP = 4'b1111;
   
   always @(*)
@@ -42,7 +41,7 @@ module ALU (op_1, op_2, opcode, result);
            end
       SLH:begin
             result = {240'd0, ScalarLoadHigh(op_1[15:0], op_2[7:0])};
-           end
+          end
       J:begin
             result = op_1 + op_2;
           end                                          
