@@ -1,10 +1,10 @@
 module picker(functype, vectorData1, vectorData2, scalarData1,
-               scalarData2, immediate, offset, op1, op2);
+               scalarData2, immediate, offset, PC, op1, op2);
                
   input [3:0] functype;
   input [5:0] offset;
   input [7:0] immediate;
-  input [15:0] scalarData1, scalarData2;
+  input [15:0] scalarData1, scalarData2, PC;
   input [255:0] vectorData1, vectorData2;
   
   output reg [255:0] op1, op2;
@@ -13,12 +13,13 @@ module picker(functype, vectorData1, vectorData2, scalarData1,
   localparam VADD = 4'b0000;
   localparam VDOT = 4'b0001;
   localparam SMUL = 4'b0010;
-  localparam SST = 4'b0011;
-  localparam VLD = 4'b0100;
-  localparam VST = 4'b0101;
-  localparam SLL = 4'b0110;
-  localparam SLH = 4'b0111;
-  localparam NOP = 4'b1111;
+  localparam SST  = 4'b0011;
+  localparam VLD  = 4'b0100;
+  localparam VST  = 4'b0101;
+  localparam SLL  = 4'b0110;
+  localparam SLH  = 4'b0111;
+  localparam J    = 4'b1000;
+  localparam NOP  = 4'b1111;
   
   always @(*) begin
 
@@ -47,6 +48,11 @@ module picker(functype, vectorData1, vectorData2, scalarData1,
       begin
         op1 = {240'd0, scalarData1};
         op2 = {248'd0, immediate};
+      end
+    J:
+      begin
+        op1 = {240'd0, PC};
+        op2 = {240'd0, {{8{immediate[7]}}, immediate}};
       end
     default:
       begin

@@ -9,12 +9,13 @@ module ALU (op_1, op_2, opcode, result);
   localparam VADD = 4'b0000;
   localparam VDOT = 4'b0001;
   localparam SMUL = 4'b0010;
-  localparam SST = 4'b0011;
-  localparam VLD = 4'b0100;
-  localparam VST = 4'b0101;
-  localparam SLL = 4'b0110;
-  localparam SLH = 4'b0111;
-  localparam NOP = 4'b1111;
+  localparam SST  = 4'b0011;
+  localparam VLD  = 4'b0100;
+  localparam VST  = 4'b0101;
+  localparam SLL  = 4'b0110;
+  localparam SLH  = 4'b0111;
+  localparam J    = 4'b1000;
+  localparam NOP  = 4'b1111;
   
   always @(*)
     case(opcode)
@@ -42,7 +43,10 @@ module ALU (op_1, op_2, opcode, result);
            end
       SLH:begin
             result = {240'd0, ScalarLoadHigh(op_1[15:0], op_2[7:0])};
-           end                                          
+           end
+      J:begin
+            result = {240'd0, (op_1[15:0] + op_2[15:0])};
+          end                                          
       default:begin /* NOP */
         result = 255'd0;
       end
