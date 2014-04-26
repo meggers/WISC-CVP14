@@ -1,5 +1,6 @@
 ## Analyze the File ##
 analyze -library WORK -format verilog {/filespace/people/g/gduma/WISC-CVP14/CVP14.v}
+analyze -library WORK -format verilog {/filespace/people/g/gduma/WISC-CVP14/VectorRegFile.v /filespace/people/g/gduma/WISC-CVP14/ScalarRegFile.v /filespace/people/g/gduma/WISC-CVP14/OperandPicker.v /filespace/people/g/gduma/WISC-CVP14/InstructionDecode.v /filespace/people/g/gduma/WISC-CVP14/ALU.v}
 
 ## Elaborate the Module ##
 elaborate CVP14 -architecture verilog -library DEFAULT
@@ -9,18 +10,20 @@ current_design CVP14
 
 set_units -time ns -resistance kOhm -capacitance pF -voltage V -current mA
 set_operating_conditions NCCOM -library tcbn40lpbwptc
-remove_wire_load_model
-set_max_area 380000
+#remove_wire_load_model
+set_max_area 0
 set_local_link_library {tcbn40lpbwptc.db,tpfn45gsgv18tc.db,tcbn40lpbwptc.db}
 set_fix_multiple_port_nets -all
-1
+create_clock -name "CLK_0" -period .32 -waveform { 0 .16  }  { Clk1  }
+set_dont_touch_network  [ find clock CLK_0 ]
 
 #Compile again, but this time with aggressive mapping effort
 ungroup -all
 uniquify
-compile -map_effort high
+compile_ultra
 check_design > CVPcheck.txt
 report_area > CVP14area.txt
 report_timing -path full -delay max -nworst 3 > CVP14timing.txt
-report_timing -path full -delay min -nworst 3 >> CVPP14timing.txt
+report_timing -path full -delay min -nworst 3 >> CVP14timing.txt
 write -format verilog CVP14 -output CVP14_final_synth.vg
+
