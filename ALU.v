@@ -174,7 +174,7 @@ function [15:0] float_add;
         end
       end
       
-      // Step 3: Normalize result
+      // Step 5: Normalize result
       if (~|mantissa_sum[overflow_bit : sum_lsb]) begin // If its zero
         exp_shifted = 0;
         mantissa_sum = mantissa_sum;

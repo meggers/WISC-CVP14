@@ -2,7 +2,7 @@ module mult_tb;
   reg[15:0] A;
   reg [15:0] B;
   reg[15:0] out;
-  `include "functions.v"
+//  `include "functions.v"
   initial begin
     $monitor("time=",$time, "In=%b, %b : Out=%b",A,B, out);
   end
