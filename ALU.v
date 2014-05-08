@@ -101,8 +101,10 @@ function [15:0] float_add;
   reg [3:0] leadingZeros;
   
   begin
-    // Set our overflow flag
+    // Initialize values
     overflow = 0;
+    exp_shifted = 0;
+    mantissa_sum = 0;
     
     // Step 1a: Construct exponents 
     exp_1 = float_1[exponent_msb : exponent_lsb];
@@ -251,7 +253,11 @@ function [15:0] float_mult;
     exp_2 = float_2[exponent_msb : exponent_lsb];
     mantissa_1 = {hidden_bit, float_1[mantissa_msb : mantissa_lsb]};
     mantissa_2 = {hidden_bit, float_2[mantissa_msb : mantissa_lsb]};
-    if((exp_1 != 0 && mantissa_1[9:0] !=0) || (exp_2 != 0 && mantissa_2[9:0])) begin
+    if((~|exp_1 && ~|mantissa_1[9:0]) || (~|exp_2 && ~|mantissa_2[9:0])) begin
+      sign = 0;
+      exp_sum = 6'b110001;
+      mantissa_prod = 0;
+    end else begin
       //Step 1: xor the sign bits
       signs[1] = float_1[sign_bit];
       signs[0] = float_2[sign_bit];
@@ -295,11 +301,7 @@ function [15:0] float_mult;
           end
         end
       end
-    end else begin
-      sign = 0;
-      exp_sum = 6'b110001;
-      mantissa_prod = 0;
-    end 
+    end
     // Step 5: Put it back together
     exp_sum = exp_sum + exponent_bias;
     if (exp_sum[5]) //if the addition has overflowed

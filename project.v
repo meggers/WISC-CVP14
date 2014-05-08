@@ -1,3 +1,4 @@
+`timescale 1 ns / 1 ps
 module PROJECT_TB;
 parameter CLK = 16;
 localparam CLK_FOUR = CLK/4;

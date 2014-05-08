@@ -1,3 +1,4 @@
+*.log
 alib-52/
 *.svf
 *.mpf
@@ -8,3 +9,4 @@ work/
 *.nfs*
 *~
 *.wlf
+*.log
